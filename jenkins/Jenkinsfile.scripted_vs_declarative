@@ -1,0 +1,40 @@
+
+// scripted pipeline skeleton
+// node is specific to scripted pipelines
+// stage is common to both Declarative and Scripted
+
+node {
+  stage (‘Build’ {
+  	//...
+  }
+  stage (‘Test’) {
+  	//...
+  }
+}
+
+--------------------------------------------------------------------------------
+
+// declarative pipeline skeleton
+// contains elements “pipeline”, “agent” and “steps” which is specific to declarative pipelines only
+
+pipeline {
+  agent any 
+  stages {
+     stage(‘Build’) {
+       steps {
+  	//…
+       }
+     }
+     stage (‘Test’) {
+       steps {
+  	//…
+       }
+     }
+  }
+}
+
+
+
+“Pipeline” defines the block that will contain all the script content.
+“Agent” defines where the pipeline will be run, similar to the “node” for the scripted one.
+“Stages” contains all of the stages.
