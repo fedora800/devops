@@ -1,11 +1,17 @@
 
 pipeline {
+
+    //agent any
+
     agent { node { label 'swarm-ci' } }
 
     agent {
         label 'linux-machine'
     }
 
+    tools {
+        maven 'Maven 3.8.6'
+    }
     // Key value pairs which helps passing values to job during job runtime from outside of Jenkinsfile. It’s one way of externalizing configuration.
     /* Note - 2 other ways
        env variables can also be defined on the jenkins portal via Manage Jenkins > System Configuration > Configure System > Global Properties > Environment Variables
@@ -197,7 +203,7 @@ pipeline {
             }
         }
 
-        // docker-build
+        // stage-docker-build
         stage('Build and Publish Docker Image') {
             when {
                 branch 'master'  //only run these steps on the master branch
@@ -224,6 +230,7 @@ pipeline {
         }
 
 
+        // stage-deploy-prod
         stage("Deploy to production") {
             agent { node { label "swarm-prod" } }
 
@@ -259,7 +266,13 @@ pipeline {
                 }
             }
         }
-    }
+
+
+        // stage-monitor
+        stage("Monitor") {
+        }
+
+    } // end-stages
 
 
     // do below post all the stages

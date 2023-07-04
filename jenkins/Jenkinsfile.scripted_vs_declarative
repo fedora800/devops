@@ -1,5 +1,6 @@
 
 // scripted pipeline skeleton
+// a bit more like precedural code, older way of doing
 // node is specific to scripted pipelines
 // stage is common to both Declarative and Scripted
 
@@ -15,6 +16,7 @@ node {
 --------------------------------------------------------------------------------
 
 // declarative pipeline skeleton
+// newer way of doing jenkins job, makes it a bit easier to read
 // contains elements “pipeline”, “agent” and “steps” which is specific to declarative pipelines only
 
 pipeline {
