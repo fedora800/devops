@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+        <title> NGINX ON DOCKER </title>
+</head>
+<body>
+        <h1> Welcome to my custom nginx webpage hosted in a Docker container exposed on port 8080</h1>
+        <p> This container was deployed: <div id="date"></div></p>
+<script>
+        var date = new Date();
+        document.getElementById("date").innerHTML=date.toLocaleString();
+</script>
+</body>
+</html>
