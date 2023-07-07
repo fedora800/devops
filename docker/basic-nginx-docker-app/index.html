@@ -3,12 +3,12 @@
 <head>
         <title> NGINX ON DOCKER </title>
 </head>
-<body>
+<body style="backgroud-color:rgb(49, 214, 220);"><center>
         <h1> Welcome to my custom nginx webpage hosted in a Docker container exposed on port 8080</h1>
-        <p> This document in container was created on : <div id="date"></div></p>
+        <p> This document in container was created on : <div id="cur-date-time"></div></p>
 <script>
-        var date = new Date();
-        document.getElementById("date").innerHTML=date.toLocaleString();
+        var curDateTime = new Date();
+        document.getElementById("cur-date-time").innerHTML=curDateTime.toLocaleString();
 </script>
 </body>
 </html>
