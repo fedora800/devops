@@ -13,7 +13,8 @@ pipeline {
         jdk   'jenkins-jdk-11'
     }   
 
-    // Key value pairs which helps passing values to job during job runtime from outside of Jenkinsfile. It’s one way of externalizing configuration.
+    // Key value pairs which helps passing values to job during job runtime from outside of Jenkinsfile. It’s one way of externalizing configuration. These are GLOBAL USER DEFINED ENVIRONMENT variables.
+    // We put it at the top before stages and these env variables will be available at any stage in pipeline. 
     /* Note - 2 other ways
        env variables can also be defined on the jenkins portal via Manage Jenkins > System Configuration > Configure System > Global Properties > Environment Variables
        Initialize Environment variables using sh scripts in Jenkinsfile
@@ -32,11 +33,14 @@ pipeline {
         COMPOSE_FILE = "docker-compose.yml"
         REGISTRY_AUTH = credentials("docker-registry")
         STACK_PREFIX = "my-project-stack-name"
+ 
+       USER_NAME = "joesmith"
+       USER_ID = 115
     }   
 
     // different types of parameters that can be set 
     // The parameters directive provides a way for Jenkins job to interact with Jenkins CI/CD users during the running of the build job.
-    // we will see 'Build with Parameters' on the build and we will need to input values in the below prompts on the web page before we proceed.
+    // we will see 'Build with Parameters' on the build after which it will PAUSE for us to INPUT values in the below prompts on the web page before we proceed.
     parameters {
         string(name: 'NAME', description: 'Please tell me your name?')
         text(name: 'DESC', description: 'Describe about the job details')
@@ -56,6 +60,50 @@ pipeline {
                 sh 'echo $JOB_TIME'
             }   
         }   
+
+      // will help us find all the env variables pre-defined for us to use in jenkinsfile
+      stage('List All the Jenkins Environment Variables"){
+        steps {
+          sh "printenv | sort"
+        }
+      }
+
+      // here i have done build_number and stage_name in 2 diff methods
+      stage("Use and Print Some Env Variables"){
+        steps{
+          echo "[1] - BUILD_NUMBER = ${env.BUILD_NUMBER} and the variable is called \${BUILD_NUMBER} or \${env.BUILD_NUMBER}"
+          sh 'echo [2] - BUILD_NUMBER = $BUILD_NUMBER'
+
+          echo "[1] - STAGE_NAME = ${env.STAGE_NAME}"
+          sh 'echo [2] - STAGE_NAME = $STAGE_NAME'
+
+          echo "Current user is ${env.USER_NAME}"
+          echo "Current user id is ${env.USER_ID} type: ${env.USER_ID.class}"    // note that the values are all strings
+
+        }
+      }
+
+    // stage set or use local environment variables in different sections
+    stage("Set Env Variables for this Stage - 1") {
+      environment {
+        USER_PATH = "/home/joe"
+      }
+      steps {
+
+        script {
+          env.FILENAME_1_SCR = "testfile-1.csv"
+        }
+
+        withEnv(["FILENAME_2_WENV=here is some value"]) {
+            echo "ANOTHER_ENV_VAR = ${env.ANOTHER_ENV_VAR}"
+        }
+        echo "GLOBAL ENV VARIABLE          - DEPLOY_URL = ${env.DEPLOY_URL}"
+        echo "LOCAL ENV VARIABLE           - USER_PATH = ${env.USER_PATH}"
+        echo "LOCAL ENV (SCRIPT) VARIABLE  - FILENAME_1_SCR = ${env.FILENAME_1_SCR}"
+        echo "LOCAL ENV (WITHENV) VARIABLE - FILENAME_2_SCR = ${env.FILENAME_2_SCR}"
+      }
+    }
+
 
         // stage-print-params
         stage('Printing Parameters') {
@@ -83,6 +131,17 @@ pipeline {
             }
         }
 
+    // stage-boolean-logic-expression
+    stage("Stage with block to execute based on Boolean Condition on Env Variable") {
+      when {
+        expression {
+          env.BUILD_SUCCESSFUL.toBoolean() = true
+        }
+      }
+      steps {
+        echo "Executing this block now that ${env.BUILD_SUCCESSFUL} is true ..."
+      }
+    }
 
         // stage-prepare
         stage("Prepare") {
