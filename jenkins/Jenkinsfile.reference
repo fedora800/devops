@@ -1,3 +1,8 @@
+// function to print the stage name more clearly in the jenkins console output, can be called within each stage
+def PrintStageName() {
+  echo "-----------------${env.STAGE_NAME}-----------------"
+}
+
 pipeline {
 
     //agent any
@@ -35,7 +40,12 @@ pipeline {
         STACK_PREFIX = "my-project-stack-name"
  
        USER_NAME = "joesmith"
-       USER_ID = 115
+       USER_ID = 115         // will be stored as a string value
+
+       IS_BOOLEAN = false   // will be stored as a string value
+
+       LS_OUTPUT = "${sh(script:'ls -lah', returnStdout: true).trim()}"
+
     }   
 
     // different types of parameters that can be set 
@@ -57,6 +67,7 @@ pipeline {
                    JOB_TIME = sh (returnStdout: true, script: "date '+%F %T'").trim()
             }   
             steps {
+                PrintStageName()
                 sh 'echo $JOB_TIME'
             }   
         }   
@@ -64,6 +75,7 @@ pipeline {
       // will help us find all the env variables pre-defined for us to use in jenkinsfile
       stage('List All the Jenkins Environment Variables"){
         steps {
+          PrintStageName()
           sh "printenv | sort"
         }
       }
@@ -90,10 +102,12 @@ pipeline {
       }
       steps {
 
+        PrintStageName()
         script {
           env.FILENAME_1_SCR = "testfile-1.csv"
         }
 
+        // IMP - this block will override all types of env variable, including GLOBAL
         withEnv(["FILENAME_2_WENV=here is some value"]) {
             echo "ANOTHER_ENV_VAR = ${env.ANOTHER_ENV_VAR}"
         }
@@ -105,6 +119,21 @@ pipeline {
     }
 
 
+        stage("Stage using Global Boolean Environment Variable") {
+            steps {
+                script {
+                    if (env.IS_BOOLEAN) {
+                        echo "You can see this message, because \"false\" String evaluates to Boolean.TRUE value"
+                    }
+
+                    // we need to call this method to use the boolean expression and value correctly
+                    if (env.IS_BOOLEAN.toBoolean() == false) {
+                        echo "You can see this message, because \"false\".toBoolean() returns Boolean.FALSE value"
+                    }
+                }
+            }
+        }
+
         // stage-print-params
         stage('Printing Parameters') {
             steps {
@@ -115,6 +144,12 @@ pipeline {
                 echo "SONAR Password: ${params.SONAR_SERVER_PWD}"
             }
         }
+
+
+        stage('Print the output of ls command stored in Env Variable') {
+            steps {
+                echo "LS_OUTPUT = ${env.LS_OUTPUT}"
+            }
 
         // stage-groovy-logic
         stage('Stage with Groovy code logic') {
@@ -154,6 +189,7 @@ pipeline {
         stage('git repo connect and download files') { 
             //agent linux-agents   // if we want this specific stage to run on this labelled hosts
             steps {
+                PrintStageName()
                 script {
                          // Get some code from a GitHub repository
                          try{
