@@ -1,5 +1,0 @@
-From ubuntu
-Maintainer "fedora800"
-Run apt update
-Run apt install vim -y
-CMD /bin/echo "Hello from my container"

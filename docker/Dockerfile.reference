@@ -1,0 +1,88 @@
+# Can define argument variables, these are only available during the build of a Docker image (RUN etc), not after the image is created 
+# Note that we can override the ARGS at cmd line by using this option for each ARG > docker build -t image1 -f Dockerfile.arg --build-arg UBUNTU_VERSION=22.04 .
+#An ARG declared before a FROM is outside of a build stage, so it can’t be used in any instruction after a FROM. 
+#ARG variables usually store important high-level configuration parameters, such as the version of the OS or a library. They are build-time variables, i.e., their only purpose is to assist in building a Docker image. Containers do not inherit ARG variables from images. However, users can later retrieve ARG values from an image with the docker history command.
+ARG UBUNTU_VERSION=18.01
+ARG CUR_DATETIME=16-Jul-2023_13:15
+
+#ENV variables store values such as secrets, API keys, and database URLs. Unlike ARGs, they persist inside the image and the containers created from that template. Users can override ENV values in the command line or provide new values in an ENV file. 
+# So, we will see these when we do set or env command in the containers or also when we do container inspect and look for Env section.
+# we can also override when running the container like -> sudo docker run -itd -e POSTGRES_ENV_PASSWORD='foo' -e POSTGRES_ENV_USER='bar' --name ctrname1 dockerhub_id/image_name
+# if there are too many env variables > sudo docker run --itd --env_file ./env.list --name ctrname1 dockerhub_id/image_name
+ENV MAIN_USERS=QA_TEAM_2
+# in below way we can pass env variables at command line via ARG arguments
+ENV UBUNTU_VERSION_ENV=$UBUNTU_VERSION
+ENV MY_DOG=Rex\ The\ Dog
+
+# Note that neither the ARG nor ENV directives can run commands like date, curl etc and take its output, so we will need to provide it via a build argument 
+
+# Use an official image as a parent image
+FROM ubuntu:${UBUNTU_VERSION}
+#From ubuntu:latest
+
+Maintainer "fedora800"
+
+# To use the default value of an ARG that was declared before the first FROM, repeat the instruction the ARG instruction without a value
+ARG UBUNTU_VERSION
+RUN echo $UBUNTU_VERSION > ubuntu_version_in_image
+
+# Set the working directory to /app
+--------------------------------------------------------------------------------
+The WORKDIR command is used to define the working directory of a Docker container at any given time. The command is specified in the Dockerfile.
+
+Any RUN, CMD, ADD, COPY, or ENTRYPOINT command will be executed in the specified working directory.
+If the WORKDIR command is not written in the Dockerfile, it will automatically be created by the Docker compiler.
+
+WORKDIR can be reused to set a new working directory at any stage of the Dockerfile. The path of the new working directory must be given relative to the current working directory.
+eg -
+FROM ubuntu:16.04
+WORKDIR /project
+RUN npm install 
+WORKDIR ../project2
+RUN touch file1.cpp
+
+While directories can be manually made and changed, it is strongly recommended that you use WORKDIR to specify the current directory in which you would like to work as​ it makes troubleshooting easier.
+
+The WORKDIR instruction sets the working directory for any RUN, CMD, ENTRYPOINT, COPY and ADD instructions that follow it in the Dockerfile. If the WORKDIR doesn’t exist, it will be created even if it’s not used in any subsequent Dockerfile instruction.
+
+The WORKDIR instruction can be used multiple times in a Dockerfile. If a relative path is provided, it will be relative to the path of the previous WORKDIR instruction. For example:
+
+WORKDIR /a
+WORKDIR b
+WORKDIR c
+RUN pwd
+
+The output of the final pwd command in this Dockerfile would be /a/b/c.
+
+The WORKDIR instruction can resolve environment variables previously set using ENV. You can only use environment variables explicitly set in the Dockerfile. For example:
+
+ENV DIRPATH=/path
+WORKDIR $DIRPATH/$DIRNAME
+RUN pwd
+
+If not specified, the default working directory is /. In practice, if you aren’t building a Dockerfile from scratch (FROM scratch), the WORKDIR may likely be set by the base image you’re using.
+
+Therefore, to avoid unintended operations in unknown directories, it is best practice to set your WORKDIR explicitly.
+
+
+--------------------------------------------------------------------------------
+
+WORKDIR /app
+
+# Copy the current directory contents into the container at /app
+COPY . /app
+
+# Install any needed packages specified in requirements.txt
+RUN pip install -r requirements.txt --default-timeout=100
+RUN ["apt-get", "update"]
+RUN ["apt-get", "-y", "install", "vim"]
+# This will print out the value of the ARG in the output of the build log
+RUN echo "Hey docker build person! ARG CUR_DATETIME=$CUR_DATETIME"
+# This will print out the value of the ENV in the output of the build log but also make it available in every container using this
+RUN echo "Hey docker build person! ENV MAIN_USERS=$MAIN_USERS"
+
+# Make port 80 available to the world outside this container
+EXPOSE 80
+
+CMD /bin/echo "Hello from my container"
+
