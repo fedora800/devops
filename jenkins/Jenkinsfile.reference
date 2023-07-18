@@ -30,6 +30,12 @@ pipeline {
         TEST_CONTAINER = "${env.TEST_PREFIX}-${env.BUILD_NUMBER}"
         REGISTRY_ADDRESS = "my.registry.address.com"
 
+        DOCKERHUB_USERNAME = "fedora800"
+        APP_NAME = "june-proj-app"
+        DOCKER_IMAGE_TAG = "${BUILD_NUMBER}"
+        DOCKER_IMAGE_NAME = "${DOCKERHUB_USERNAME}" + "/" + "${APP_NAME}"
+        DOCKER_REGISTRY_NAME = "dockerhub"
+
         SLACK_CHANNEL = "#deployment-notifications"
         SLACK_TEAM_DOMAIN = "MY-SLACK-TEAM"
         SLACK_TOKEN = credentials("slack_token")
@@ -117,6 +123,14 @@ pipeline {
         echo "LOCAL ENV (WITHENV) VARIABLE - FILENAME_2_SCR = ${env.FILENAME_2_SCR}"
       }
     }
+
+
+        stage("Clean Jenkins Workspace") {
+            steps {
+                script {
+                   echo "to do"
+                }
+        }
 
 
         stage("Stage using Global Boolean Environment Variable") {
@@ -358,6 +372,93 @@ pipeline {
             }
         }
 
+
+        // stage-docker-hub
+        stage("Push Newly Built Image to DockerHub") {
+
+          steps {
+             script {
+               sh "sudo docker login -u ${DOCKERHUB_USERNAME} -p ${DOCKERHUB_CREDENTIALS}"
+               sh "sudo docker push XXXX/YYYY"
+             }
+          }
+
+        }
+
+        // stage-prune-images
+        stage("Prune Docker Images") {
+
+          # this is not exactly prune, but just deleting the specific image 
+          steps {
+            script {
+              sh "sudo docker image rm ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+              sh "sudo docker image rm ${DOCKER_IMAGE_NAME}:latest"
+        }
+
+
+
+        // stage-apply-docker-changes-to-kubernetes
+        stage("Apply Docker Image changes into Kubernetes Deployment File") {
+
+          steps {
+            script {
+              sh """
+                 echo "--pre change--"; cat deployment.yml
+                 sed -i 's/${APP_NAME}.*/${APP_NAME}:${DOCKER_IMAGE_TAG}/g' deployment.yml
+                 echo "--post change--"; cat deployment.yml
+
+                 sudo docker image rm ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
+                 sudo docker image rm ${DOCKER_IMAGE_NAME}:latest
+              """
+        }
+
+
+        // stage-commit-kubernetes-changes
+        stage("Push the Kubernetes Changes into git") {
+
+          steps {
+            script {
+              sh """
+                 git config --global user.name "fedora800"
+                 git config --global user.email "fedora800@gmail.com"
+                 git add deployment.yml
+                 git commit -m "k8 deployment file updated - by jenkins - ${env.BUILD_NUMBER}"
+              """
+             withCredentials([gitUsernamePassword(credentialsId: 'jenkins-github-credentials-id', gitToolName: 'git-tool')]) {
+               sh "git push https://github.com/fedora800/myproject1.git main"
+             }
+ 
+        }
+
+
+        // stage-manual-approval
+        stage("Manual Approval Before Deploying into Production") {
+          steps {
+            script {
+              # gives approvers 10mins to approve, else abort this stage & pipeline
+              timeout(10) {
+                emailext body: "<br>Project: ${env.JOB_NAME} <br>Build Number: ${env.BUILD_NUMBER} <br>Build URL: ${env.BUILD_URL} <br> Please review & approve deployment via the Build URL link", recipientProviders: [[$class: 'DevelopersRecipientProvider'], [$class: 'RequesterRecipientProvider']], subject: 'Requesting Approval - ${env.BUILD_NUMBER} - ${env.BUILD_URL}'
+                input {
+                  message "Are you confirming to deploy change into Production ?"
+                  ok "Deploy"
+                }
+              }
+            }
+          }
+
+          post {
+            always {
+            }
+          }
+        }
+
+
+        // stage-deploy-into-kubernetes
+        stage("Deploy to Kubernetes Cluster") {
+          sh "kubectl apply -f deployment.yml"
+        }
+
+
         // stage-deploy-prod
         stage("Deploy to production") {
             agent { node { label "swarm-prod" } }
@@ -393,6 +494,11 @@ pipeline {
                     )
                 }
             }
+        }
+
+        // stage-verify-deployment
+        stage("Verify App Deployment") {
+          ## to do
         }
 
 

@@ -1,5 +1,5 @@
 # Can define argument variables, these are only available during the build of a Docker image (RUN etc), not after the image is created 
-# Note that we can override the ARGS at cmd line by using this option for each ARG > docker build -t image1 -f Dockerfile.arg --build-arg UBUNTU_VERSION=22.04 .
+# Note that we can override the ARGS at cmd line by using this option for each ARG > docker build -t image1 -f Dockerfile.arg --build-arg "UBUNTU_VERSION=22.04" .
 #An ARG declared before a FROM is outside of a build stage, so it canâ€™t be used in any instruction after a FROM. 
 #ARG variables usually store important high-level configuration parameters, such as the version of the OS or a library. They are build-time variables, i.e., their only purpose is to assist in building a Docker image. Containers do not inherit ARG variables from images. However, users can later retrieve ARG values from an image with the docker history command.
 ARG UBUNTU_VERSION=18.01
@@ -7,7 +7,9 @@ ARG CUR_DATETIME=16-Jul-2023_13:15
 
 #ENV variables store values such as secrets, API keys, and database URLs. Unlike ARGs, they persist inside the image and the containers created from that template. Users can override ENV values in the command line or provide new values in an ENV file. 
 # So, we will see these when we do set or env command in the containers or also when we do container inspect and look for Env section.
-# we can also override when running the container like -> sudo docker run -itd -e POSTGRES_ENV_PASSWORD='foo' -e POSTGRES_ENV_USER='bar' --name ctrname1 dockerhub_id/image_name
+# This value will be in the environment for all subsequent instructions in the build stage
+# we can also override when running the container like -> sudo docker run -itd -e "POSTGRES_ENV_PASSWORD=foo" -e "POSTGRES_ENV_USER=bar" --name ctrname1 dockerhub_id/image_name
+** i could not get container to override the ENV variable with values passed by -e, only the hardcoded value inside docker stayed, need to look further **********
 # if there are too many env variables > sudo docker run --itd --env_file ./env.list --name ctrname1 dockerhub_id/image_name
 ENV MAIN_USERS=QA_TEAM_2
 # in below way we can pass env variables at command line via ARG arguments
@@ -28,6 +30,7 @@ RUN echo $UBUNTU_VERSION > ubuntu_version_in_image
 
 # Set the working directory to /app
 --------------------------------------------------------------------------------
+TODO -- start
 The WORKDIR command is used to define the working directory of a Docker container at any given time. The command is specified in the Dockerfile.
 
 Any RUN, CMD, ADD, COPY, or ENTRYPOINT command will be executed in the specified working directory.
@@ -65,6 +68,8 @@ If not specified, the default working directory is /. In practice, if you arenâ€
 Therefore, to avoid unintended operations in unknown directories, it is best practice to set your WORKDIR explicitly.
 
 
+
+TODO -- end
 --------------------------------------------------------------------------------
 
 WORKDIR /app
