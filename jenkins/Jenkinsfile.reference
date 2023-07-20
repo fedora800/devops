@@ -1,6 +1,6 @@
 // function to print the stage name more clearly in the jenkins console output, can be called within each stage
 def PrintStageName() {
-  echo "-----------------${env.STAGE_NAME}-----------------"
+  echo "-----------------STAGE: ${env.STAGE_NAME}-----------------"
 }
 
 pipeline {
@@ -17,6 +17,10 @@ pipeline {
         maven 'jenkins-maven-3.8.6'
         jdk   'jenkins-jdk-11'
     }   
+
+  triggers {  //before the stages, so no need to configure it seperately in diff section on jenkins gui
+    pollSCM 'H/10 * * * *'
+  }
 
     // Key value pairs which helps passing values to job during job runtime from outside of Jenkinsfile. It’s one way of externalizing configuration. These are GLOBAL USER DEFINED ENVIRONMENT variables.
     // We put it at the top before stages and these env variables will be available at any stage in pipeline. 
@@ -65,10 +69,10 @@ pipeline {
         password(name: 'SONAR_SERVER_PWD', description: 'Enter SONAR password')
     }   
 
-   stages {
+  stages {
 
         // stage-initialization
-        stage('Initialization') {
+        stage('Initialization') { NOT-TESTED
             environment { 
                    JOB_TIME = sh (returnStdout: true, script: "date '+%F %T'").trim()
             }   
@@ -79,7 +83,7 @@ pipeline {
         }   
 
       // will help us find all the env variables pre-defined for us to use in jenkinsfile
-      stage('List All the Jenkins Environment Variables"){
+      stage('List All the Jenkins Environment Variables"){ NOT-TESTED
         steps {
           PrintStageName()
           sh "printenv | sort"
@@ -87,7 +91,7 @@ pipeline {
       }
 
       // here i have done build_number and stage_name in 2 diff methods
-      stage("Use and Print Some Env Variables"){
+      stage("Use and Print Some Env Variables"){ NOT-TESTED
         steps{
           echo "[1] - BUILD_NUMBER = ${env.BUILD_NUMBER} and the variable is called \${BUILD_NUMBER} or \${env.BUILD_NUMBER}"
           sh 'echo [2] - BUILD_NUMBER = $BUILD_NUMBER'
@@ -102,7 +106,7 @@ pipeline {
       }
 
     // stage set or use local environment variables in different sections
-    stage("Set Env Variables for this Stage - 1") {
+    stage("Set Env Variables for this Stage - 1") { NOT-TESTED
       environment {
         USER_PATH = "/home/joe"
       }
@@ -125,15 +129,16 @@ pipeline {
     }
 
 
-        stage("Clean Jenkins Workspace") {
-            steps {
-                script {
-                   echo "to do"
-                }
+    stage("Clean Jenkins Workspace") { // STAGE-TESTED-AND-WORKS
+      steps {
+        PrintStageName()
+        script {
+          cleanWs()
         }
+      }
+    }
 
-
-        stage("Stage using Global Boolean Environment Variable") {
+        stage("Stage using Global Boolean Environment Variable") { NOT-TESTED
             steps {
                 script {
                     if (env.IS_BOOLEAN) {
@@ -149,7 +154,7 @@ pipeline {
         }
 
         // stage-print-params
-        stage('Printing Parameters') {
+        stage('Printing Parameters') { NOT-TESTED
             steps {
                 echo "Hello ${params.NAME}"
                 echo "Job Details: ${params.DESC}"
@@ -160,13 +165,13 @@ pipeline {
         }
 
 
-        stage('Print the output of ls command stored in Env Variable') {
+        stage('Print the output of ls command stored in Env Variable') { NOT-TESTED
             steps {
                 echo "LS_OUTPUT = ${env.LS_OUTPUT}"
             }
 
         // stage-groovy-logic
-        stage('Stage with Groovy code logic') {
+        stage('Stage with Groovy code logic') { NOT-TESTED
             steps {
                 script {
                     def name = "${params.NAME}"
@@ -181,7 +186,7 @@ pipeline {
         }
 
     // stage-boolean-logic-expression
-    stage("Stage with block to execute based on Boolean Condition on Env Variable") {
+    stage("Stage with block to execute based on Boolean Condition on Env Variable") { NOT-TESTED
       when {
         expression {
           env.BUILD_SUCCESSFUL.toBoolean() = true
@@ -193,14 +198,31 @@ pipeline {
     }
 
         // stage-prepare
-        stage("Prepare") {
+        stage("Prepare") { NOT-TESTED
             steps {
                 bitbucketStatusNotify buildState: "INPROGRESS"
             }
         }
 
+
+    stage('Pull Code from git PUBLIC repo')  { 		// STAGE-TESTED-AND-WORKS
+      steps {
+        PrintStageName()
+        script {
+          try{
+            // Pull code from a GitHub repository
+            git branch: 'main', url: 'https://github.com/fedora800/scratch_project.git'
+          }
+          catch (err) {
+            echo err
+          }
+        }
+      }
+    }
+
+
         // stage-git-repo-and-downloads
-        stage('git repo connect and download files') { 
+        stage('git repo connect and download files') {  NOT-TESTED
             //agent linux-agents   // if we want this specific stage to run on this labelled hosts
             steps {
                 PrintStageName()
@@ -226,12 +248,12 @@ pipeline {
         }
 
         // stage-scm-checkout
-        stage("SCM Checkout") {
+        stage("SCM Checkout") { NOT-TESTED
         steps { echo "SCM Checkout"  }
         }
 
         // stage-build
-        stage("Build and start test image") {
+        stage("Build and start test image") { NOT-TESTED
             steps {
                 sh "docker-composer build"
                 sh "docker-compose up -d"
@@ -239,7 +261,7 @@ pipeline {
         }
 
         // stage-code-review
-        stage("Code Review") {
+        stage("Code Review") { NOT-TESTED
         steps { echo "Code Review"  }
         }
 
@@ -247,41 +269,41 @@ pipeline {
         /* can comprise of many different testing stages
            or even as many steps of a single test stage
         */
-        stage("Unit Test") {
+        stage("Unit Test") { NOT-TESTED
         steps { echo "Unit Test"  }
         }
 
         // stage-integration-test-1
-        stage("Integration Test 1") {
+        stage("Integration Test 1") { NOT-TESTED
         steps { echo "Integration Test 1"  }
         }
 
         // stage-smoke-test
-        stage("Smoke Test") {
+        stage("Smoke Test") { NOT-TESTED
         steps { echo "Smoke Test"  }
         }
 
         // stage-end-to-end-test
-        stage("End to End Test") {
+        stage("End to End Test") { NOT-TESTED
         steps { echo "End to End Test"  }
         }
 
         // stage-metric-check
-        stage("Metrics Check") {
+        stage("Metrics Check") { NOT-TESTED
         steps { echo "Metrics Check"  }
         }
 
         // stage-package
-        stage("Package") {
+        stage("Package") { NOT-TESTED
         steps { echo "Package"  }
         }
 
         // stage-deploy
-        stage("Deploy") {
+        stage("Deploy") { NOT-TESTED
         steps { echo "Deploy"  }
         }
 
-        stage("Run tests") {
+        stage("Run tests") { NOT-TESTED
             steps {
                 sh "docker-compose exec -T php-fpm composer --no-ansi --no-interaction tests-ci"
                 sh "docker-compose exec -T php-fpm composer --no-ansi --no-interaction behat-ci"
@@ -299,7 +321,7 @@ pipeline {
             }
         }
 
-        stage("Determine new version") {
+        stage("Determine new version") { NOT-TESTED
             // Acts like if condition to decide whether to run the particular stage or not
             when {
                 branch "master"
@@ -318,7 +340,7 @@ pipeline {
             }
         }
 
-        stage("Create new version") {
+        stage("Create new version") { NOT-TESTED
             when {
                 branch "master"
                 environment name: "IS_NEW_VERSION", value: "YES"
@@ -347,7 +369,7 @@ pipeline {
         }
 
         // stage-docker-build
-        stage('Build and Publish Docker Image') {
+        stage('Build and Publish Docker Image') { NOT-TESTED
             when {
                 branch 'master'  //only run these steps on the master branch
             }
@@ -374,7 +396,7 @@ pipeline {
 
 
         // stage-docker-hub
-        stage("Push Newly Built Image to DockerHub") {
+        stage("Push Newly Built Image to DockerHub") { NOT-TESTED
 
           steps {
              script {
@@ -386,7 +408,7 @@ pipeline {
         }
 
         // stage-prune-images
-        stage("Prune Docker Images") {
+        stage("Prune Docker Images") { NOT-TESTED
 
           # this is not exactly prune, but just deleting the specific image 
           steps {
@@ -398,7 +420,7 @@ pipeline {
 
 
         // stage-apply-docker-changes-to-kubernetes
-        stage("Apply Docker Image changes into Kubernetes Deployment File") {
+        stage("Apply Docker Image changes into Kubernetes Deployment File") { NOT-TESTED
 
           steps {
             script {
@@ -414,7 +436,7 @@ pipeline {
 
 
         // stage-commit-kubernetes-changes
-        stage("Push the Kubernetes Changes into git") {
+        stage("Push the Kubernetes Changes into git") { NOT-TESTED
 
           steps {
             script {
@@ -432,7 +454,7 @@ pipeline {
 
 
         // stage-manual-approval
-        stage("Manual Approval Before Deploying into Production") {
+        stage("Manual Approval Before Deploying into Production") { NOT-TESTED
           steps {
             script {
               # gives approvers 10mins to approve, else abort this stage & pipeline
@@ -454,13 +476,13 @@ pipeline {
 
 
         // stage-deploy-into-kubernetes
-        stage("Deploy to Kubernetes Cluster") {
+        stage("Deploy to Kubernetes Cluster") { NOT-TESTED
           sh "kubectl apply -f deployment.yml"
         }
 
 
         // stage-deploy-prod
-        stage("Deploy to production") {
+        stage("Deploy to production") { NOT-TESTED
             agent { node { label "swarm-prod" } }
 
             when {
@@ -497,13 +519,13 @@ pipeline {
         }
 
         // stage-verify-deployment
-        stage("Verify App Deployment") {
+        stage("Verify App Deployment") { NOT-TESTED
           ## to do
         }
 
 
         // stage-monitor
-        stage("Monitor") {
+        stage("Monitor") { NOT-TESTED
             steps { echo "Monitor"  }
         }
 

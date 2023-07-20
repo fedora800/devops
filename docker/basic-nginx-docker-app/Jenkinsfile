@@ -6,7 +6,7 @@ pipeline {
 
    agent { label 'linux-agents' }
 
-   stages {
+  stages {
 
       stage("Stage-Print-Build-Number"){
         steps{
@@ -15,30 +15,21 @@ pipeline {
         }
       }
 
-        stage('Stage-Get-git-Repo')  {
-               
-            steps {
-              PrintStageName()
-                script {
-                     try{
-                           // Get some code from a GitHub repository
-                           git url: 'https://github.com/fedora800/projCert.git', branch: 'main' 
-                      
-                     }
-                     catch (err){
-                           echo err
-                     }
-                }
-             }
+    stage('Stage-Get-git-Repo')  {
+      steps {
+        PrintStageName()
+        script {
+          try{
+            // Pull code from a GitHub repository
+            git branch: 'main', url: 'https://github.com/fedora800/scratch_project.git'
+          }
+          catch (err) {
+            echo err
+          }
         }
+      }
+    }
 
-        // stage-monitor
-        stage("STAGE-MONITOR") {
-            steps { 
-              PrintStageName()
-              echo "Monitor"  
-            }
-        }
 
     } // end-stages
 
