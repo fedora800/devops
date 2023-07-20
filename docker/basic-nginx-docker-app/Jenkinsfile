@@ -2,9 +2,15 @@ def PrintStageName() {
   echo "-----------------${env.STAGE_NAME}-----------------"
 }
 
+
 pipeline {
 
-   agent { label 'linux-agents' }
+  agent { label 'linux-agents' }
+
+
+  triggers {  //before the stages, so no need to configure it seperately in diff section on jenkins gui
+    pollSCM 'H/10 * * * *'
+  }
 
   stages {
 
