@@ -1,6 +1,0 @@
-$ sudo docker build -t mynginximage:v1.0 .
-
-$ sudo docker image ls -a
-REPOSITORY     TAG          IMAGE ID       CREATED          SIZE
-mynginximage   v1.0         510e9bad22bb   32 seconds ago   187MB
-nginx          latest       021283c8eb95   45 hours ago     187MB
