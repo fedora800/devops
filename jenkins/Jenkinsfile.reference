@@ -502,6 +502,12 @@ pipeline {
 // DOCKER stages -- USING JENKINS FUNCTIONS  (end)
 // --------------------------------------------------------------------------------
 
+
+        // stage-trivy-artifact-scan
+        stage("Scan the Docker Image with Trivy using static analysis for vulneribilities") { NOT-TESTED
+          ## to do
+        }
+
         // stage-docker-build
         stage('Build and Publish Docker Image') { NOT-TESTED
             when {
@@ -608,6 +614,11 @@ pipeline {
           }
         }
 
+
+        // stage-update-manifest-files-into-gitops
+        stage("Change the Kubernetes Manifest files and git push them into the seperate GitOps repo") { NOT-TESTED
+          //todo
+        }
 
         // stage-deploy-into-kubernetes
         stage("Deploy to Kubernetes Cluster") { NOT-TESTED
