@@ -560,6 +560,12 @@ pipeline {
 // DOCKER stages -- USING JENKINS FUNCTIONS  (end)
 // --------------------------------------------------------------------------------
 
+
+        // stage-trivy-artifact-scan
+        stage("Scan the Docker Image with Trivy using static analysis for vulneribilities") { NOT-TESTED
+          ## to do
+        }
+
         // stage-docker-build
         stage('Build and Publish Docker Image') { NOT-TESTED
             when {
@@ -661,6 +667,20 @@ pipeline {
  
         }
 
+        // stage-push-to-gitops-git-repo-manifest-file      
+        stage("Push the changed deployment file to Git") {
+            steps {
+                sh """
+                    git config --global user.name "dmancloud"
+                    git config --global user.email "dinesh@dman.cloud"
+                    git add deployment.yaml
+                    git commit -m "Updated Deployment Manifest"
+                """
+                withCredentials([gitUsernamePassword(credentialsId: 'github', gitToolName: 'Default')]) {
+                    sh "git push https://github.com/dmancloud/gitops-complete-prodcution-e2e-pipeline main"
+                }
+            }
+        }
 
         // stage-manual-approval
         stage("Manual Approval Before Deploying into Production") { NOT-TESTED
@@ -683,6 +703,11 @@ pipeline {
           }
         }
 
+
+        // stage-update-manifest-files-into-gitops
+        stage("Change the Kubernetes Manifest files and git push them into the seperate GitOps repo") { NOT-TESTED
+          //todo
+        }
 
         // stage-deploy-into-kubernetes
         stage("Deploy to Kubernetes Cluster") { NOT-TESTED
@@ -727,6 +752,17 @@ pipeline {
             }
         }
 
+
+        stage("Trigger CD Pipeline") {
+            steps {
+                script {
+                    sh "curl -v -k --user admin:${JENKINS_API_TOKEN} -X POST -H 'cache-control: no-cache' -H 'content-type: application/x-www-form-urlencoded' --data 'IMAGE_TAG=${IMAGE_TAG}' 'https://jenkins.dev.dman.cloud/job/gitops-complete-pipeline/buildWithParameters?token=gitops-token'"
+                }
+            }
+
+        }
+
+
         // stage-verify-deployment
         stage("Verify App Deployment") { NOT-TESTED
           ## to do
@@ -757,6 +793,22 @@ pipeline {
           body: "Something is wrong with ${env.BUILD_URL}"
     }
     }
+
+    //another post block example for reference
+    post {
+        failure {
+            emailext body: '''${SCRIPT, template="groovy-html.template"}''', 
+                    subject: "${env.JOB_NAME} - Build # ${env.BUILD_NUMBER} - Failed", 
+                    mimeType: 'text/html',to: "dmistry@yourhostdirect.com"
+            }
+         success {
+               emailext body: '''${SCRIPT, template="groovy-html.template"}''', 
+                    subject: "${env.JOB_NAME} - Build # ${env.BUILD_NUMBER} - Successful", 
+                    mimeType: 'text/html',to: "dmistry@yourhostdirect.com"
+          }      
+    }
+
+
 
 }
 
