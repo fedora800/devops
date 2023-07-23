@@ -208,6 +208,9 @@ pipeline {
         }
 
 
+// --------------------------------------------------------------------------------
+// GIT related stages -- (begin)
+
     stage('Pull Code from git PUBLIC repo')  { 		// TESTED-AND-WORKS
       steps {
         PrintStageName()
@@ -232,6 +235,19 @@ pipeline {
      }
    }
 
+
+
+    stage('Stage-Get-git-Repo -- using withCredentials function')  {		//TESTED-AND-WORKS
+      steps {
+        PrintStageName()
+        withCredentials([gitUsernamePassword(credentialsId: 'j_github_credentials', gitToolName: 'git-tool')]) {
+          sh "git fetch --all"
+        }
+      }
+    }
+
+// GIT related stages -- (end)
+// --------------------------------------------------------------------------------
 
 
         // stage-git-repo-and-downloads
@@ -406,6 +422,7 @@ pipeline {
           // throws below error -
 //sudo: a terminal is required to read the password; either use the -S option to read from standard input or configure an askpass helper
 //sudo: a password is required
+          // but this is seen online - https://thetechdarts.com/deploy-to-dockerhub-using-jenkins-declarative-pipeline/ 
           // added jenkins userid to docker group and then did below, which worked
           sh "echo $DOCKERHUB_PASSWORD_TOKEN | docker login -u $DOCKERHUB_USERNAME --password-stdin"
         }
@@ -469,6 +486,7 @@ pipeline {
 //        PrintStageName()
 //        script {
 //          docker.build("${DOCKER_HUB_USERNAME}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}")
+//          eg. dockerImage = docker.build("monishavasu/my-react-app:latest")
 //        }
 //      }
 //    }
@@ -498,6 +516,46 @@ pipeline {
 //      }
 //    }
 
+   stage("Push to Dockerhub") {      NOT-TESTED
+     when { 
+       equals 
+          expected: "true", 
+          actual: "${params.PushImage}" }
+     steps {
+       script {
+         echo "Pushing the image to docker hub"
+         def localImage = "${params.Image_Name}:${params.Image_Tag}"
+      
+         // pcheajra is my username in the DockerHub
+         // You can use your username
+         def repositoryName = "pchejara/${localImage}"
+      
+         // Create a tag that going to push into DockerHub
+         sh "docker tag ${localImage} ${repositoryName} "
+         docker.withRegistry("", "DockerHubCredentials") {
+           def image = docker.image("${repositoryName}");
+           image.push()
+         }
+       }
+    }
+  }
+  post {
+     always {
+        script {
+           echo "I am execute always"
+        }
+     }
+     success {
+        script {
+           echo "I am execute on success"
+        }
+     }
+     failure {
+        script {
+           echo "I am execute on failure"
+        }
+     }
+  }
 
 // DOCKER stages -- USING JENKINS FUNCTIONS  (end)
 // --------------------------------------------------------------------------------
@@ -540,6 +598,23 @@ pipeline {
           }
 
         }
+
+      stage("Build docker images") {		NOT-TESTED
+         steps {
+            script {
+               echo "Bulding docker images"
+               def buildArgs = """\
+--build-arg HTTP_PROXY=${params.HTTP_PROXY} \
+--build-arg HTTPS_PROXY=${params.HTTPS_PROXY} \
+-f Dockerfile \
+."""
+                docker.build(
+                   "${params.Image_Name}:${params.Image_Tag}",
+                   buildArgs)
+            }
+         }
+      }
+   }
 
         // stage-prune-images
         stage("Prune Docker Images") { NOT-TESTED
