@@ -33,7 +33,7 @@ pipeline {
     DOCKER_REGISTRY_URL = "https://registry.hub.docker.com"
     DOCKERHUB_USERNAME = "fedora800"
     DOCKERHUB_PASSWORD_TOKEN = "dckr_pat_bIVSJy3byydo43Wnzb6WxrV17Ag"
-    DOCKER_IMAGE_TAG_1 = "${BUILD_NUMBER}"
+    DOCKER_IMAGE_TAG_1 = "${env.BUILD_NUMBER}"
     DOCKER_IMAGE_TAG_2 = "latest"
 
     GITHUB_REPO_URL = "https://github.com/fedora800/scratch_project.git"
@@ -97,7 +97,7 @@ pipeline {
       stage("Use and Print Some Env Variables"){ NOT-TESTED
         steps{
           echo "[1] - BUILD_NUMBER = ${env.BUILD_NUMBER} and the variable is called \${BUILD_NUMBER} or \${env.BUILD_NUMBER}"
-          sh 'echo [2] - BUILD_NUMBER = $BUILD_NUMBER'
+          sh 'echo [2] - BUILD_NUMBER = $env.BUILD_NUMBER'
 
           echo "[1] - STAGE_NAME = ${env.STAGE_NAME}"
           sh 'echo [2] - STAGE_NAME = $STAGE_NAME'
@@ -289,6 +289,17 @@ pipeline {
             }
         }
 
+
+        // stage-build-gradle
+        stage('Build using gradlew') {
+          steps {
+            echo 'Running build automation'
+            sh './gradlew build --no-daemon'
+            archiveArtifacts artifacts: 'dist/trainSchedule.zip'
+          }
+        }
+
+
         // stage-code-review
         stage("Code Review") { NOT-TESTED
         steps { echo "Code Review"  }
@@ -473,7 +484,7 @@ pipeline {
 //      steps {
 //        PrintStageName()
 //        script {
-//          docker.withRegistry($DOCKER_REGISTRY_URL, 'docker-hub-credentials') {
+//          docker.withRegistry($DOCKER_REGISTRY_URL, $DOCKER_REGISTRY_CREDENTIALS) {
 //            // do what here ?
 //          }
 //        }
@@ -496,7 +507,10 @@ pipeline {
 //      steps {
 //        PrintStageName()
 //        script {
-//          dockerImage = docker.build dregistry_and_repo + ":$BUILD_NUMBER"
+//          dockerImage = docker.build dregistry_and_repo + ":$env.BUILD_NUMBER"
+//          dockerImage.inside {
+//            sh 'echo Hello, World!'
+//          }
 //        }
 //      }
 //    }
@@ -506,8 +520,8 @@ pipeline {
 //      steps {
 //        PrintStageName()
 //        script {
-//          docker.withRegistry( '', $DOCKER_REGISTRY_CREDENTIALS ) {
-//            dockerImage.push("$BUILD_NUMBER")
+//          docker.withRegistry($DOCKER_REGISTRY_URL, $DOCKER_REGISTRY_CREDENTIALS ) {
+//            dockerImage.push("$env.BUILD_NUMBER")
 //            dockerImage.push('latest')
 //            docker.push("${DOCKER_HUB_USERNAME}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}")     // another one
 
@@ -714,6 +728,46 @@ pipeline {
           sh "kubectl apply -f deployment.yml"
         }
 
+        // stage-canary-deploy
+        stage('CanaryDeploy') {
+          when {
+            branch 'master'
+          }
+          environment {
+            CANARY_REPLICAS = 1
+          }
+          steps {
+            kubernetesDeploy(
+              kubeconfigId: 'kubeconfig',
+              configs: 'train-schedule-kube-canary.yml',
+              enableConfigSubstitution: true
+            )
+          }
+        }
+      
+        //stage-deploy-to-prod-kubernetes-cluster
+        stage('Deploy To Production Kubernetes cluster') {
+            when {
+                branch 'master'
+            }
+            environment {
+                CANARY_REPLICAS = 0
+            }
+            steps {
+                input 'Deploy to Production?'
+                milestone(1)
+                kubernetesDeploy(
+                    kubeconfigId: 'kubeconfig',
+                    configs: 'train-schedule-kube-canary.yml',
+                    enableConfigSubstitution: true
+                )
+                kubernetesDeploy(
+                    kubeconfigId: 'kubeconfig',
+                    configs: 'train-schedule-kube.yml',
+                    enableConfigSubstitution: true
+                )
+            }
+        }
 
         // stage-deploy-prod
         stage("Deploy to production") { NOT-TESTED
