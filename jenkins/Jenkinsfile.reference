@@ -31,14 +31,15 @@ pipeline {
   environment {
 
     DOCKER_REGISTRY_URL = "https://registry.hub.docker.com"
+    DOCKERHUB_CREDENTIALS = "j_dockerhub_credentials"
     DOCKERHUB_USERNAME = "fedora800"
-    DOCKERHUB_PASSWORD_TOKEN = "dckr_pat_bIVSJy3byydo43Wnzb6WxrV17Ag"
+    DOCKERHUB_PASSWORD_TOKEN = "dckr_pat_bIVSJy3byydo43Wnzb6WxrV17Ag"     // to not use this unencrpyted, we might need to use jenkins functions to docker login instead of sh scripts
     DOCKER_IMAGE_TAG_1 = "${env.BUILD_NUMBER}"
     DOCKER_IMAGE_TAG_2 = "latest"
 
     GITHUB_REPO_URL = "https://github.com/fedora800/scratch_project.git"
     GITHUB_REPO_BRANCH = "main"
-    GIT_HUB_CREDENTIALS = "j_github_credentials"
+    GITHUB_CREDENTIALS = "j_github_credentials"
 
     APP_NAME = "basic-nginx-docker-app"
 
@@ -50,6 +51,8 @@ pipeline {
 
         COMPOSE_FILE = "docker-compose.yml"
         REGISTRY_AUTH = credentials("docker-registry")
+        //DOCKERHUB_CREDENTIALS= credentials('dockerhubcredentials')     
+
         STACK_PREFIX = "my-project-stack-name"
  
        USER_NAME = "joesmith"
@@ -218,7 +221,7 @@ pipeline {
           try {
             // Pull code from a GitHub repository
             //git branch: 'main', url: 'https://github.com/fedora800/scratch_project.git'
-            git branch: GITHUB_REPO_BRANCH, credentialsId: GIT_HUB_CREDENTIALS, url: GITHUB_REPO_URL
+            git branch: GITHUB_REPO_BRANCH, credentialsId: GITHUB_CREDENTIALS, url: GITHUB_REPO_URL
           }
           catch (err) {
             echo err
@@ -231,20 +234,20 @@ pipeline {
     stage('Pull Code from Private git repo -- method 2')  {		//TESTED-AND-WORKS
       steps {
         PrintStageName()
-        git([url: GITHUB_REPO_URL, branch: GITHUB_REPO_BRANCH, credentialsId: GIT_HUB_CREDENTIALS])
+        git([url: GITHUB_REPO_URL, branch: GITHUB_REPO_BRANCH, credentialsId: GITHUB_CREDENTIALS])
      }
    }
 
 
-
-    stage('Stage-Get-git-Repo -- using withCredentials function')  {		//TESTED-AND-WORKS
-      steps {
-        PrintStageName()
-        withCredentials([gitUsernamePassword(credentialsId: 'j_github_credentials', gitToolName: 'git-tool')]) {
-          sh "git fetch --all"
-        }
-      }
-    }
+//    this is not required as we have defined a Declarative checkout by enabling Poll-SCM build trigger and configuring the Pipeline script from SCM on Jenkins GUI
+//    stage('Stage-Get-git-Repo -- using withCredentials function')  {		//TESTED-AND-WORKS
+//      steps {
+//        PrintStageName()
+//        withCredentials([gitUsernamePassword(credentialsId: 'j_github_credentials', gitToolName: 'git-tool')]) {
+//          sh "git fetch --all"
+//        }
+//      }
+//    }
 
 // GIT related stages -- (end)
 // --------------------------------------------------------------------------------
@@ -480,55 +483,26 @@ pipeline {
 // --------------------------------------------------------------------------------
 // DOCKER stages -- USING JENKINS FUNCTIONS  (begin)
 
-//    stage("Connect to Docker Registry and authenticate with credentials - Using Jenkins function") {
-//      steps {
-//        PrintStageName()
-//        script {
-//          docker.withRegistry($DOCKER_REGISTRY_URL, $DOCKER_REGISTRY_CREDENTIALS) {
-//            // do what here ?
-//          }
-//        }
-//      }
-//    }
 
-
-//    stage("Build Docker Image - Using Jenkins function -- found online 1") {
-//      steps {
-//        PrintStageName()
-//        script {
-//          docker.build("${DOCKER_HUB_USERNAME}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}")
-//          eg. dockerImage = docker.build("monishavasu/my-react-app:latest")
-//        }
-//      }
-//    }
-
-
-//    stage("Build Docker Image - Using Jenkins function -- found online 2") {
-//      steps {
-//        PrintStageName()
-//        script {
-//          dockerImage = docker.build dregistry_and_repo + ":$env.BUILD_NUMBER"
-//          dockerImage.inside {
-//            sh 'echo Hello, World!'
-//          }
-//        }
-//      }
-//    }
-
-
-//    stage("Push Docker Image - Using Jenkins function") {
-//      steps {
-//        PrintStageName()
-//        script {
-//          docker.withRegistry($DOCKER_REGISTRY_URL, $DOCKER_REGISTRY_CREDENTIALS ) {
-//            dockerImage.push("$env.BUILD_NUMBER")
-//            dockerImage.push('latest')
-//            docker.push("${DOCKER_HUB_USERNAME}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}")     // another one
-
-//          }
-//        }
-//      }
-//    }
+    stage("Connect to Docker Registry and authenticate with credentials - Using Jenkins function") {           // TESTED-AND-WORKS
+      steps {
+        PrintStageName()
+          script {
+            // needs Docker Pipeline plugin
+            // Connect to Docker Registry
+            //docker.withRegistry($DOCKER_REGISTRY_URL, $DOCKERHUB_CREDENTIALS) {
+            docker.withRegistry('https://registry.hub.docker.com', 'j_dockerhub_credentials') {
+            // Build the image locally
+            def myDockerImage1 = docker.build("${DOCKERHUB_USERNAME}/${APP_NAME}:${DOCKER_IMAGE_TAG_1}")
+            def myDockerImage2 = docker.build("${DOCKERHUB_USERNAME}/${APP_NAME}:${DOCKER_IMAGE_TAG_2}")
+  //          eg. dockerImage = docker.build("monishavasu/my-react-app:latest")
+            /* Push the container to the Docker Registry */
+            myDockerImage1.push()
+            myDockerImage2.push()
+          }
+        }
+      }
+    }
 
    stage("Push to Dockerhub") {      NOT-TESTED
      when { 
