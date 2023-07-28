@@ -1,7 +1,9 @@
 # Can define argument variables, these are only available during the build of a Docker image (RUN etc), not after the image is created 
-# Note that we can override the ARGS at cmd line by using this option for each ARG > docker build -t image1 -f Dockerfile.arg --build-arg "UBUNTU_VERSION=22.04" .
+# Note that we can override the ARGS at cmd line by using this option for each ARG > docker build --tag image1 -f Dockerfile.arg --build-arg "UBUNTU_VERSION=22.04" .
+# $ sudo docker build --build-arg "ARG_IMG_BUILD_VERSION=57" --tag fedora800/basic-nginx-docker-app:latest --tag fedora800/basic-nginx-docker-app:57 .
 #An ARG declared before a FROM is outside of a build stage, so it can’t be used in any instruction after a FROM. 
 #ARG variables usually store important high-level configuration parameters, such as the version of the OS or a library. They are build-time variables, i.e., their only purpose is to assist in building a Docker image. Containers do not inherit ARG variables from images. However, users can later retrieve ARG values from an image with the docker history command.
+# https://blog.bitsrc.io/how-to-pass-environment-info-during-docker-builds-1f7c5566dd0e
 ARG UBUNTU_VERSION=18.01
 ARG CUR_DATETIME=16-Jul-2023_13:15
 
@@ -24,9 +26,13 @@ FROM ubuntu:${UBUNTU_VERSION}
 
 Maintainer "fedora800"
 
-# To use the default value of an ARG that was declared before the first FROM, repeat the instruction the ARG instruction without a value
+# To use the default value of an ARG that was declared before the first FROM, repeat the instruction the ARG instruction without a value. This works
 ARG UBUNTU_VERSION
-RUN echo $UBUNTU_VERSION > ubuntu_version_in_image
+ARG ARG_IMG_BUILD_VERSION
+RUN echo $UBUNTU_VERSION > /tmp/ubuntu_version_in_image
+RUN echo $ARG_IMG_BUILD_VERSION  > /tmp/image_version
+#ENV ENV_IMG_BUILD_VERSION=$ARG_IMG_BUILD_VERSION      # to assign build variable value to env variable
+
 
 # Set the working directory to /app
 --------------------------------------------------------------------------------

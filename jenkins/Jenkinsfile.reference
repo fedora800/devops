@@ -48,6 +48,8 @@ pipeline {
         SLACK_TEAM_DOMAIN = "MY-SLACK-TEAM"
         SLACK_TOKEN = credentials("slack_token")
         DEPLOY_URL = "https://deployment.example.com/"
+        // DOCKER_ID = credentials('J_DOCKER_ID')                 // where J_DOCKER_ID is defined as a credential of type secret text on jenkins gui
+        // DOCKER_PASSWORD = credentials('J_DOCKER_PASSWORD')     // where J_DOCKER_PASSWORD is defined as a credential of type secret text on jenkins gui
 
         COMPOSE_FILE = "docker-compose.yml"
         REGISTRY_AUTH = credentials("docker-registry")
@@ -68,6 +70,7 @@ pipeline {
     // The parameters directive provides a way for Jenkins job to interact with Jenkins CI/CD users during the running of the build job.
     // we will see 'Build with Parameters' on the build after which it will PAUSE for us to INPUT values in the below prompts on the web page before we proceed.
     parameters {
+        string(name: 'GREETING', defaultValue: 'Hello', description: 'How should I greet the world?')
         string(name: 'NAME', description: 'Please tell me your name?')
         text(name: 'DESC', description: 'Describe about the job details')
         booleanParam(name: 'SKIP_TEST', description: 'Want to skip running Test cases?')
@@ -162,7 +165,8 @@ pipeline {
         // stage-print-params
         stage('Printing Parameters') { NOT-TESTED
             steps {
-                echo "Hello ${params.NAME}"
+                echo "Greeting : ${params.GREETING} World!"
+                echo "Hi ${params.NAME}"
                 echo "Job Details: ${params.DESC}"
                 echo "Skip Running Test case ?: ${params.SKIP_TEST}"
                 echo "Branch Choice: ${params.BRANCH}"
