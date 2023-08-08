@@ -99,18 +99,22 @@ pipeline {
         }
       }
 
-      // here i have done build_number and stage_name in 2 diff methods
-      stage("Use and Print Some Env Variables"){ NOT-TESTED
+      // here i have printed env variables in 2 diff methods
+      stage("Use and Print Some Env Variables") { // TESTED-AND-WORKS
         steps{
-          echo "[1] - BUILD_NUMBER = ${env.BUILD_NUMBER} and the variable is called \${BUILD_NUMBER} or \${env.BUILD_NUMBER}"
-          sh 'echo [2] - BUILD_NUMBER = $env.BUILD_NUMBER'
-
-          echo "[1] - STAGE_NAME = ${env.STAGE_NAME}"
-          sh 'echo [2] - STAGE_NAME = $STAGE_NAME'
-
-          echo "Current user is ${env.USER_NAME}"
-          echo "Current user id is ${env.USER_ID} type: ${env.USER_ID.class}"    // note that the values are all strings
-
+          PrintStageName()
+          echo "BUILD_NUMBER = ${env.BUILD_NUMBER}"
+          echo "STAGE_NAME = ${env.STAGE_NAME}"
+          echo "JOB_NAME=${env.JOB_NAME}"
+          echo "NODE_NAME=${env.NODE_NAME}"
+          echo "USER=${env.USER}"
+          echo "WORKSPACE=${env.WORKSPACE}"
+  
+          sh "BUILD_NUMBER=$BUILD_NUMBER"
+          sh "JOB_NAME=$JOB_NAME"
+  
+          sh "printenv | sort"
+  
         }
       }
 
