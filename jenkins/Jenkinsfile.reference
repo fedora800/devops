@@ -68,14 +68,21 @@ pipeline {
 
     // different types of parameters that can be set 
     // The parameters directive provides a way for Jenkins job to interact with Jenkins CI/CD users during the running of the build job.
-    // we will see 'Build with Parameters' on the build after which it will PAUSE for us to INPUT values in the below prompts on the web page before we proceed.
+    // we will see 'Build with Parameters' on the Jenkins GUI page
+    // i had to manually click to start the build after which it will PAUSE for us to INPUT values in the below prompts on the web page before we proceed.
     parameters {
-        string(name: 'GREETING', defaultValue: 'Hello', description: 'How should I greet the world?')
-        string(name: 'NAME', description: 'Please tell me your name?')
-        text(name: 'DESC', description: 'Describe about the job details')
-        booleanParam(name: 'SKIP_TEST', description: 'Want to skip running Test cases?')
-        choice(name: 'BRANCH', choices: ['Master', 'Dev'], description: 'Choose branch')
-        password(name: 'SONAR_SERVER_PWD', description: 'Enter SONAR password')
+      // below will show as a 1 line input box, if not put anything, it will take the defined default value
+      string(name: 'GREETING', defaultValue: 'Hello', description: 'How should I greet the world?')
+      // below will show as a 1 line input box, if not put anything, it will take as null
+      string(name: 'NAME', description: 'Please tell me your name?')
+      // below will show as large multiline input box, if not put anything, it will take as null
+      text(name: 'DESC', description: 'Describe about the job details')
+      // below will show a check box with the label and desc given, will take false if not checked
+      booleanParam(name: 'SKIP_TEST', description: 'Want to skip running Test cases?')
+      // below will show a dropdown box, will take the 1st choice by default if nothing selected
+      choice(name: 'BRANCH', choices: ['Master', 'Dev'], description: 'Choose branch')
+      // below will show a 1 line input box, will show as concealed and we can change it
+      password(name: 'SONAR_SERVER_PWD', description: 'Enter SONAR password')
     }   
 
   stages {
@@ -100,7 +107,7 @@ pipeline {
       }
 
       // here i have printed env variables in 2 diff methods
-      stage("Use and Print Some Env Variables") { // TESTED-AND-WORKS
+      stage("Print Environment Variables") { // TESTED-AND-WORKS
         steps{
           PrintStageName()
           echo "BUILD_NUMBER = ${env.BUILD_NUMBER}"
