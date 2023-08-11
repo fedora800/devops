@@ -685,6 +685,103 @@ pipeline {
             }
         }
 
+    // stage-input-basic-manual-approval
+    /*
+       On GUI, will wait for this stage, when clicked it will show my msg "Are you confirming to deploy change into Production ?" with button options of "Yes" and "Abort"
+       if clicked on "Yes" --->
+[Pipeline] stage
+[Pipeline] { (Manual Approval Before Deploying into Production) (hide)
+[Pipeline] input
+Are you confirming to deploy change into Production ?
+Yes or Abort
+Approved by Admin User
+[Pipeline] echo
+-----------------Manual Approval Before Deploying into Production-----------------
+[Pipeline] echo
+User has confirmed production deployment ...
+[Pipeline] echo
+Now deploying to PROD ...
+Post stage
+[Pipeline] echo
+--in post always--
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] End of Pipeline
+       On clicking abort, job status will change to Aborted and console output ---->
+Rejected by Admin User
+org.jenkinsci.plugins.workflow.actions.ErrorAction$ErrorId: 4c852ee0-24fb-4c9a-986a-d680f42acf41
+Finished: ABORTED
+    */
+    stage("Manual Approval Before Deploying into Production") { // TESTED-AND-WORKS
+      input {
+        message "Are you confirming to deploy change into Production ?"
+        ok "Yes"
+        //submitter: list of users or groups who are allowed to submit this input, default is any user.
+        //submitter "ssbostan,admin,admins,managers"
+        //submitterParameter: if this option is used, can be used to set submitter username in the environment variables.
+        //submitterParameter "SUBMITTER_USERNAME"
+      }
+      steps {
+        PrintStageName()
+        echo "User has confirmed production deployment ..."
+        echo "Now deploying to PROD ..."
+      }
+      post {
+        always {
+          echo "--in post always--"
+        }
+      }
+    }
+
+    // stage-input-param-get-choice
+    stage("Manual Choice of values using parameters") {       // TESTED-AND-WORKS
+      steps {
+        PrintStageName()
+        script {
+          env.MY_CHOICE_ENV = input message: 'User input required',
+            parameters: [choice(name: 'Whats your choice ? ', choices: 'no\nyes', description: 'Choose "yes" if you want to deploy this build')]
+        }
+      }
+    }
+
+
+    // if we had chosen "yes", it will print "You had selected (yes) - yes ..."
+    // if we had chosen "no", it will completely skip this stage due to the when conditional
+    stage('Inform about the choice Variable') {            // TESTED-AND-WORKS
+      when {
+        environment name: 'MY_CHOICE_ENV', value: 'yes'
+      }
+      steps {
+        PrintStageName()
+        echo "You had selected (yes) - ${env.MY_CHOICE_ENV} ..."
+      }
+    }
+
+
+    // stage-input-request-username-password
+    stage ("Request UserName and Password") {    // TESTED-AND-WORKS
+      steps {
+        PrintStageName()
+        script {
+          env.USERNAME = input message: 'Please enter the username',
+            parameters: [string(defaultValue: '', description: 'Username for the app', name: 'Username')]
+          env.PASSWORD = input message: 'Please enter the password',
+            parameters: [password(defaultValue: '', description: 'Passwd for the app', name: 'Password')]
+        }
+        echo "Username: ${env.USERNAME}"
+        echo "Password: ${env.PASSWORD}"
+      }
+    }
+
+
+
+
         // stage-manual-approval
         stage("Manual Approval Before Deploying into Production") { NOT-TESTED
           steps {
