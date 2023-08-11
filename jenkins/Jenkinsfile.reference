@@ -779,6 +779,37 @@ Finished: ABORTED
       }
     }
 
+    // stage-input-multiple-parameters
+    // the stage will wait with a popup showing "Select options: The paused input step uses advanced input options. <href Please redirect to approve >
+    // where once clicked on the above href, it will take us to a page which will ask us to put all the inputs
+    // the echo will give -> Env: [Options:Foo, textInput:data-textInput-box, submitterBy:admin, Check1:false, credentialsParam:, inputText:data-inputText-row-box, PasswordField:None, textField:data-textField-box]
+    stage("Take in as Input Multiple Parameters") {   //TESTED-AND-WORKS
+      steps {
+        timeout(time: 2, unit: 'HOURS') { //SECONDS | MINUTES | HOURS | DAYS
+          script {
+            def userInput =
+                  input( id: 'input'
+                    , message: 'Select options :'
+      //            , submitter: 'asanchez' // only this user can submit the form, comment to skip
+                    , submitterParameter: 'submitterBy' // return the name of the user submitter
+                    , parameters: [
+                       //Params
+                       booleanParam(name: 'Check1', defaultValue: false)
+                       , [$class: 'TextParameterDefinition', defaultValue: 'Dummy Text', description: 'A simple text param', name: 'textInput']
+                       , text(defaultValue: 'LOREM', description: '', name: 'textField')
+                       , string(defaultValue: 'dummy text', description: '', name: 'inputText', trim: false)
+                       , credentials(credentialType: 'com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl', defaultValue: '', description: '', name: 'credentialsParam', required: true)
+                     , choice(choices: ['Foo', 'Bar', 'Sed'], description: '', name: 'Options')
+                     , password(defaultValue: 'None', description: '', name: 'PasswordField')
+                       ])
+
+                   echo("Env: " + userInput)
+
+          }
+        }
+      }
+    }
+
 
 
 
