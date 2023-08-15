@@ -1,3 +1,23 @@
+
+/*
+-------------------- section : Functions --------------------
+-------------------- section : Environment Variables --------------------
+-------------------- section : Parameters --------------------
+-------------------- section : Git Related --------------------
+-------------------- section : Build Related --------------------
+-------------------- section : Code Review Related --------------------
+-------------------- section : Testing Related --------------------
+-------------------- section : Metric Checks Related --------------------
+-------------------- section : Packaging Related --------------------
+-------------------- section : Docker Related (Using Shell commands) --------------------
+-------------------- section : Docker Related (Using Jenkins functions) --------------------
+
+*/
+
+
+
+//-------------------- section : Functions --------------------
+
 // function to print the stage name more clearly in the jenkins console output, can be called within each stage
 def PrintStageName() {     TESTED-AND-WORKS
   echo "-----------------STAGE: ${env.STAGE_NAME}-----------------"
@@ -21,6 +41,8 @@ pipeline {
   triggers {  //before the stages, so no need to configure it seperately in diff section on jenkins gui
     pollSCM 'H/10 * * * *'
   }
+
+// -------------------- section : Environment Variables --------------------
 
     // Key value pairs which helps passing values to job during job runtime from outside of Jenkinsfile. It’s one way of externalizing configuration. These are GLOBAL USER DEFINED ENVIRONMENT variables.
     // We put it at the top before stages and these env variables will be available at any stage in pipeline. 
@@ -65,6 +87,9 @@ pipeline {
        LS_OUTPUT = "${sh(script:'ls -lah', returnStdout: true).trim()}"
 
     }   
+
+
+//-------------------- section : Parameters --------------------
 
     // different types of parameters that can be set 
     // The parameters directive provides a way for Jenkins job to interact with Jenkins CI/CD users during the running of the build job.
@@ -226,8 +251,7 @@ pipeline {
         }
 
 
-// --------------------------------------------------------------------------------
-// GIT related stages -- (begin)
+// -------------------- section : Git Related --------------------
 
     stage('Pull Code from git PUBLIC repo')  { 		// TESTED-AND-WORKS
       steps {
@@ -264,8 +288,6 @@ pipeline {
 //      }
 //    }
 
-// GIT related stages -- (end)
-// --------------------------------------------------------------------------------
 
 
         // stage-git-repo-and-downloads
@@ -308,6 +330,7 @@ pipeline {
         }
 
 
+// -------------------- section : Build Related --------------------
         // stage-build-gradle
         stage('Build using gradlew') {
           steps {
@@ -318,10 +341,13 @@ pipeline {
         }
 
 
+// -------------------- section : Code Review Related --------------------
         // stage-code-review
         stage("Code Review") { NOT-TESTED
         steps { echo "Code Review"  }
         }
+
+// -------------------- section : Testing Related --------------------
 
         // stage-test
         /* can comprise of many different testing stages
@@ -346,21 +372,6 @@ pipeline {
         steps { echo "End to End Test"  }
         }
 
-        // stage-metric-check
-        stage("Metrics Check") { NOT-TESTED
-        steps { echo "Metrics Check"  }
-        }
-
-        // stage-package
-        stage("Package") { NOT-TESTED
-        steps { echo "Package"  }
-        }
-
-        // stage-deploy
-        stage("Deploy") { NOT-TESTED
-        steps { echo "Deploy"  }
-        }
-
         stage("Run tests") { NOT-TESTED
             steps {
                 sh "docker-compose exec -T php-fpm composer --no-ansi --no-interaction tests-ci"
@@ -378,6 +389,24 @@ pipeline {
                 }
             }
         }
+
+// -------------------- section : Metric Checks Related --------------------
+        // stage-metric-check
+        stage("Metrics Check") { NOT-TESTED
+        steps { echo "Metrics Check"  }
+        }
+
+// -------------------- section : Packaging Related --------------------
+        // stage-package
+        stage("Package") { NOT-TESTED
+        steps { echo "Package"  }
+        }
+
+        // stage-deploy
+        stage("Deploy") { NOT-TESTED
+        steps { echo "Deploy"  }
+        }
+
 
         stage("Determine new version") { NOT-TESTED
             // Acts like if condition to decide whether to run the particular stage or not
@@ -427,8 +456,7 @@ pipeline {
         }
 
 
-// --------------------------------------------------------------------------------
-// DOCKER stages -- USING SHELL COMMANDS  (begin)
+// -------------------- section : Docker Related (Using Shell commands) --------------------
 
     stage("Build Docker Image - Using Shell commands") {                // TESTED-AND-WORKS
       steps {
@@ -491,12 +519,7 @@ pipeline {
     }
 
 
-// DOCKER stages -- USING SHELL COMMANDS  (end)
-// --------------------------------------------------------------------------------
-
-
-// --------------------------------------------------------------------------------
-// DOCKER stages -- USING JENKINS FUNCTIONS  (begin)
+// -------------------- section : Docker Related (Using Jenkins functions) --------------------
 
 
     stage("Connect to Docker Registry and authenticate with credentials - Using Jenkins function") {           // TESTED-AND-WORKS
@@ -998,4 +1021,9 @@ Finished: ABORTED
 
 
 }
+
+// $ grep -n "section|stage\(" Jenkinsfile.reference     # run this to get all the stages
+
+
+
 
