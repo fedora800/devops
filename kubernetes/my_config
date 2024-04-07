@@ -1,0 +1,102 @@
+apiVersion: v1
+kind: Config
+preferences: {}
+
+# --------------------------------------------------------------------------------
+clusters:
+- cluster:
+    certificate-authority: fake-ca-file
+    server: https://1.2.3.4
+  name: cl-prod
+- cluster:
+    insecure-skip-tls-verify: true
+    server: https://5.6.7.8
+  name: cl-staging
+- cluster:
+    certificate-authority: /home/sam/.minikube/ca.crt
+    server: https://127.0.0.1:51171
+  name: cl-minikube-local
+
+# --------------------------------------------------------------------------------
+contexts:
+- context:
+    cluster: cl-staging
+    namespace: default
+    user: dev-user
+  name: cx-staging-developer
+- context:
+    cluster: cl-staging
+    namespace: test
+    user: qa-user
+  name: cx-staging-tester
+- context:
+    cluster: cl-prod
+    namespace: monitoring
+    user: dev-user
+  name: cx-prod-support
+- context:
+    cluster: cl-minikube-local
+    namespace: default
+    user: mk-admin
+  name: cx-minikube-test
+
+# --------------------------------------------------------------------------------
+users:
+- name: dev-user
+  user:
+    client-certificate: fake-cert-file
+    client-key: fake-key-file
+- name: qa-user
+  user:
+    username: qa-user-id
+    password: qa-user-password
+- name: support-user
+  user:
+    username: support-user-id
+    password: support-user-password
+- name: mk-admin
+  user:
+    client-certificate: /home/sam/.minikube/profiles/minikube/client.crt
+    client-key: /home/sam/.minikube/profiles/minikube/client.key
+
+# --------------------------------------------------------------------------------
+current-context: cx-staging-developer
+
+
+
+
+# --------------------------------------------------------------------------------
+# 2 clusters, 3 users and 3 contexts
+# $ kubectl config --kubeconfig=my_config get-contexts
+# CURRENT   NAME                   CLUSTER      AUTHINFO   NAMESPACE
+#           cx-prod-support        cl-prod      dev-user   monitoring
+# *         cx-staging-developer   cl-staging   dev-user   default
+#           cx-staging-tester      cl-staging   qa-user    test
+
+
+# --------------------------------------------------------------------------------
+# precendence of which config will be used - 
+# 1. use --kubeconfig flag, if specified
+# 2. use KUBECONFIG environment variable, if specified
+# 3. use $HOME/.kube/config file
+
+# $ kubectl get pods --kubeconfig=file1
+# $ KUBECONFIG=file1 kubectl get pods
+
+# without a good kubectl config file, we would have to type long commands like below - 
+# $ kubectl get pods --server=https://172.31.118.17:6443 --certificate-authority=ca.crt --client-certificate=user.ct --client-key=user.key
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
