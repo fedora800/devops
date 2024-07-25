@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Pod 
+metadata:
+  name: pod-multi-4-containers
+spec:
+  containers:
+  - name: ctr-1-nginx
+    image: nginx:1.14.2
+    ports:
+    - containerPort: 80
+
+  - name: ctr-2-redis
+    image: redis:latest
+
+  - name: ctr-3-busybox-1
+    image: busybox
+    command: ['sh', '-c', 'date; echo "container 3 is Running" ; sleep 3600']
+
+  - name: ctr-4-busybox-2
+    image: busybox
+    command: ['sh', '-c', 'date; echo "container 4 is Running" ; sleep 3600']
+
