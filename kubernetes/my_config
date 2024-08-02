@@ -18,6 +18,25 @@ clusters:
   name: cl-minikube-local
 
 # --------------------------------------------------------------------------------
+users:
+- name: dev-user
+  user:
+    client-certificate: fake-cert-file
+    client-key: fake-key-file
+- name: qa-user
+  user:
+    username: qa-user-id
+    password: qa-user-password
+- name: support-user
+  user:
+    username: support-user-id
+    password: support-user-password
+- name: mk-admin
+  user:
+    client-certificate: /home/sam/.minikube/profiles/minikube/client.crt
+    client-key: /home/sam/.minikube/profiles/minikube/client.key
+
+# --------------------------------------------------------------------------------
 contexts:
 - context:
     cluster: cl-staging
@@ -39,25 +58,6 @@ contexts:
     namespace: default
     user: mk-admin
   name: cx-minikube-test
-
-# --------------------------------------------------------------------------------
-users:
-- name: dev-user
-  user:
-    client-certificate: fake-cert-file
-    client-key: fake-key-file
-- name: qa-user
-  user:
-    username: qa-user-id
-    password: qa-user-password
-- name: support-user
-  user:
-    username: support-user-id
-    password: support-user-password
-- name: mk-admin
-  user:
-    client-certificate: /home/sam/.minikube/profiles/minikube/client.crt
-    client-key: /home/sam/.minikube/profiles/minikube/client.key
 
 # --------------------------------------------------------------------------------
 current-context: cx-staging-developer
