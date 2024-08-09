@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx:1.25.2
+    ports:
+    - containerPort: 80
+      name: ctrport-nginx
+
+# /usr/share/nginx/html/index.html 
+# root@pod-nginx:/# cat << EOF > /usr/share/nginx/html/index.html
+# > <!DOCTYPE html>
+# <html>
+# <head>
+# <body>
+# <h1>My nginx container running in a pod in kubernetes cluster</h1>
+# <p><em>this is version 1.2.3 </em></p>
+# </body>
+# </html>
+# > EOF
+
+# $ kubectl get pod pod-nginx -o wide --show-labels
+# NAME        READY   STATUS    RESTARTS      AGE   IP               NODE          NOMINATED NODE   READINESS GATES   LABELS
+# pod-nginx   1/1     Running   1 (30m ago)   91m   192.168.185.36   acg-worker1   <none>           <none>            <none>
+# 
+# 
+# $ kubectl logs pod-nginx
+# ...
+# 2024/08/03 14:55:27 [notice] 1#1: nginx/1.25.2
+# ...
+# 2024/08/03 14:55:27 [notice] 1#1: start worker process 29
+# 192.168.185.49 - - [03/Aug/2024:15:18:32 +0000] "GET / HTTP/1.1" 200 615 "-" "curl/8.7.1" "-"
+

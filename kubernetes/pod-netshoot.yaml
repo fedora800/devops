@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-netshoot
+spec:
+  containers:
+  - name: ctr-netshoot
+    image: nicolaka/netshoot
+    command: ["/bin/bash", "-c", "while true; do ping localhost; sleep 60;done"]
+
+# i prefer to use this than busybox for troubleshooting in cluster pods and network connections
+
+# $ kubectl exec -it pod-netshoot -- curl 192.168.185.36:80                  # this is IP of my nginx pod and port is the containerPort
+# <!DOCTYPE html>
+# <html>
+# <head>
+# <body>
+# <h1>My nginx container running in a pod in kubernetes cluster</h1>
+# <p><em>this is version 1.2.3 </em></p>
+# </body>
+# </html>
+# 
+# $ kubectl exec -it pod-netshoot -- bash
+

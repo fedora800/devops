@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-nodeport-nginx
+spec:
+  type: NodePort
+  selector:
+    tier: frontend
+  ports:
+    - port: 80
+#      targetPort: 80
+      targetPort: ctrport-nginx
+      nodePort: 30080          # if we dont use this, by default, k8s will assign a random one from that 30000-32767 range.
+                               # this SERVICE will listen on this port for EXTERNAL traffic coming in on ALL of our nodes
+                               # so we can reach this service on this port from any of our nodes, which in turn will route us to the pods mapped by the selector condition
+
+$ kubectl get service svc-nodeport-nginx -o wide --show-labels
+NAME                 TYPE       CLUSTER-IP    EXTERNAL-IP   PORT(S)        AGE   SELECTOR        LABELS
+svc-nodeport-nginx   NodePort   10.108.38.0   <none>        80:30080/TCP   30s   tier=frontend   <none>
+
+$ kubectl describe service svc-nodeport-nginx
+Name:                     svc-nodeport-nginx
+Namespace:                default
+Labels:                   <none>
+Annotations:              <none>
+Selector:                 tier=frontend
+Type:                     NodePort
+IP Family Policy:         SingleStack
+IP Families:              IPv4
+IP:                       10.108.38.0
+IPs:                      10.108.38.0
+Port:                     <unset>  80/TCP
+TargetPort:               80/TCP
+NodePort:                 <unset>  30080/TCP
+Endpoints:                192.168.16.14:80,192.168.185.47:80,192.168.185.53:80
+Session Affinity:         None
+External Traffic Policy:  Cluster
+Events:                   <none>
+
+$ kubectl get endpoints svc-nodeport-nginx
+NAME                 ENDPOINTS                                              AGE
+svc-nodeport-nginx   192.168.16.14:80,192.168.185.47:80,192.168.185.53:80   2m4s
+
+
+# Test the service by making a request from your browser to http://<Control Plane Node Public IP>:30080 . You should see the Nginx welcome page.

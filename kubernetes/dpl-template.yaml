@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dpl-busybox
+  labels:
+    app: busybox
+    env: prod
+    tier: frontend
+spec:
+  replicas: 10                      # creates the ReplicaSets, tells how many instances of the pod this deployment/replicaset will create/control
+  strategy:                            # define strategy how we want to replace old pods with new
+    type: RollingUpdate                # is default. Recreate is other one
+    rollingUpdate:
+      maxSurge: 25%                    # default is 25%. optional. can be say 5 or 10%. specifies max num of pods allowed to be created MORE THAN/IN ADDITION TO the total desired number of pods during the update process.
+      maxUnavailable: 25%              # default is 25%. optional. can be say 5 (number) or 10% (percentage). specifies max num of pods that will be allowed to be DOWN/unavailable during update process.
+  selector:                          # MANDATORY section. specifies the label selector mapping criteria to match pods managed by this deployment
+    matchLabels:                     # specifies the labels that the Replica Set (deployment creates it) should use to select the pods it manages. 
+      app: busybox
+      env: prod
+      tier: frontend
+  template:                          # this section defines the POD template to create pods that we need
+    metadata:
+      labels:
+        app: busybox                 # these are all the labels put on the pod
+        env: prod
+        tier: frontend
+    spec:                            # defines the specification of the pod
+      affinity:
+        nodeAffinity:                # ensures pods are scheduled only on NODES having label appnodetype = support-node1 or monitoring-node1
+          requiredDuringSchedulingIgnoredDuringExecution:        # label MUST MATCH values
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: appnodetype
+                operator: In
+                values:
+                - support-node1
+                - monitoring-node1
+          preferredDuringSchedulingIgnoredDuringExecution:       # node PREFERABLY has a label with below key matching value
+          - weight: 1
+            preference:
+              matchExpressions:
+              - key: another-node-label-key
+                operator: In
+                values:
+                - another-node-label-value
+        podAntiAffinity:                                         # anti/repel - so no 2 nginx pods with label app=nginx will be scheduled on the same node
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - nginx
+            topologyKey: "kubernetes.io/hostname"                # specifies that the scheduling is based on the hostname of the nodes
+      volumes:                     # define a name for the volume to be used within the container. this will need to map to a pre-defined persistent volume claim
+      - name: appdata-vol
+        persistentVolumeClaim:
+          claimName: my-pvc        # needs to be defined seperately in another yaml file
+      - name: cache-vol
+        emptyDir:
+          sizeLimit: 500Mi
+      containers:
+      - name: ctr-busybox          # name of the CONTAINER within the pod
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8100      # port that this CONTAINER is actually going to be listening on 
+          name: ctrport-busybox    # user friendly way of identifying port, specially when referencing it in a service yaml
+        env:
+        - name: DATABASE_HOST
+          value: dbserver1.example.com
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: sct-api-credentials
+              key: api-key          
+        volumeMounts:
+          - name: appdata-vol
+            mountPath: /app/data   # this is the actual directory that will be seen inside the container
+          - name: cache-vol
+            mountPath: /cache
+        livenessProbe:             # checks whether the container is still alive and if probe FAILS, k8s will RESTART the container
+          httpGet:                 # probe will use an HTTP GET request to below
+            path: /                # The path to check for the liveness probe
+            port: 8100             # The port to check on
+          initialDelaySeconds: 15  # Wait this many seconds before starting the probe
+          periodSeconds: 10        # Check the probe every 10 seconds
+        readinessProbe:            # checks whether the container is ready to serve traffic, if probe FAILS, k8s will mark the container as NOT READY and no traffic will be routed to it
+          httpGet:
+            path: /                # The path to check for the readiness probe
+            port: 8100             # The port to check on
+          initialDelaySeconds: 5   # Wait this many seconds before starting the probe
+          periodSeconds: 5         # Check the probe every 5 seconds
+        resources:                    # define resource requests and limits for the container
+          limits:
+            memory: "256Mi"  # Maximum memory allowed for the container
+            cpu: "200m"       # Maximum CPU allowed (200 milliCPU, ie 0.2 CPU cores)
+          requests:
+            memory: "128Mi"  # Initial memory container can request on startup
+            cpu: "100m"       # Initial CPU request
+        command: ['sh', '-c', 'echo Container 1 is Running ; sleep 3600']
+
+      terminationGracePeriodSeconds: 30                     # is the default value (dont change) when not explicitly mentioned here. means kubelet can take upto 30secs to gracefully bring down this pod
+
+

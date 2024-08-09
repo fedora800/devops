@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cmp-index-html
+  namespace: default
+data:
+  index.html: |
+    <!doctype html>
+    <html>
+      <head>
+        <title>Title - My custom index.html page</title>
+      </head>
+      <body>
+        <p>This web page is housed on a <strong>Pod running Nginx</strong> in a Kubernetes Cluster</p>
+        <h1>Have a good day !</h1>
+      </body>
+    </html>
+

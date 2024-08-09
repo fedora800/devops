@@ -1,0 +1,72 @@
+
+cloud_user@acg-devops1:~/git-projects/devops/kubernetes
+$ ls -lR dir-myconfigmaps/
+dir-myconfigmaps/:
+total 8
+-rw-rw-r-- 1 cloud_user cloud_user 45 Aug  3 08:50 game.properties
+-rw-rw-r-- 1 cloud_user cloud_user 54 Aug  3 08:50 ui.properties
+
+cloud_user@acg-devops1:~/git-projects/devops/kubernetes
+$ cat dir-myconfigmaps/game.properties
+enemies=aliens
+lives=3
+cheat.code=WINNER2024
+
+cloud_user@acg-devops1:~/git-projects/devops/kubernetes
+$ cat dir-myconfigmaps/ui.properties
+color.good=purple
+color.bad=yellow
+fontsize.normal=14
+
+$ kubectl create configmap cmp-from-directory-files --from-file=dir-myconfigmaps/
+
+$ kubectl get cm cmp-from-directory-files
+NAME                       DATA   AGE
+cmp-from-directory-files   2      28s
+
+$ kubectl describe cm cmp-from-directory-files
+Name:         cmp-from-directory-files
+Namespace:    default
+Labels:       <none>
+Annotations:  <none>
+
+Data
+====
+game.properties:
+----
+enemies=aliens
+lives=3
+cheat.code=WINNER2024
+
+ui.properties:
+----
+color.good=purple
+color.bad=yellow
+fontsize.normal=14
+
+
+BinaryData
+====
+
+Events:  <none>
+
+
+$ kubectl get cm cmp-from-directory-files -o yaml
+apiVersion: v1
+data:
+  game.properties: |
+    enemies=aliens
+    lives=3
+    cheat.code=WINNER2024
+  ui.properties: |
+    color.good=purple
+    color.bad=yellow
+    fontsize.normal=14
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2024-08-03T09:14:59Z"
+  name: cmp-from-directory-files
+  namespace: default
+  resourceVersion: "4251518"
+  uid: ec3924ec-87e2-420f-98b6-243cf7351ff9
+

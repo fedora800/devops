@@ -1,0 +1,31 @@
+$ echo -e "customer2=microsoft\nceo=satya nadela\naddress=seattle, USA" > /tmp/config.txt
+$ cat /tmp/config.txt
+customer2=microsoft
+ceo=satya nadela
+address=seattle, USA
+
+$ kubectl create configmap cmp-from-file --from-file=/tmp/config.txt
+configmap/cmp--from-file created
+$ kl get configmap cmp-from-file
+NAME                   DATA   AGE
+cmp-from-file   1      47s
+
+$ kl describe configmap cmp-from-file
+Name:         cmp-from-file
+Namespace:    default
+Labels:       <none>
+Annotations:  <none>
+
+Data
+====
+config.txt:
+----
+customer2=microsoft
+ceo=satya nadela
+address=seattle, USA
+
+
+BinaryData
+====
+
+Events:  <none>

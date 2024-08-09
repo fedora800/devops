@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dpl-nginx
+  labels:
+    tier: frontend
+spec:
+  selector:
+    matchLabels:
+      tier: frontend
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        tier: frontend
+    spec:
+      containers:
+      - name: ctr-nginx
+        image: nginx:latest
+#        image: nginx:1.17
+        ports:
+        - containerPort: 80
+
+
+# $ kubectl get deployments -o wide
+#NAME        READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES         SELECTOR
+#dpl-nginx   2/3     3            2           26s   ctr-nginx    nginx:latest   tier=frontend
+
+# $ kubectl get pods -o wide --show-labels
+# NAME                         READY   STATUS    RESTARTS      AGE     IP               NODE           NOMINATED NODE   READINESS GATES   LABELS
+# dpl-nginx-78f6f45db4-ppkvc   1/1     Running   0             3m34s   192.168.185.45   acg-worker1    <none>           <none>            pod-template-hash=78f6f45db4,tier=frontend
+# dpl-nginx-78f6f45db4-rrw7q   1/1     Running   0             3m34s   192.168.16.7     acg-control1   <none>           <none>            pod-template-hash=78f6f45db4,tier=frontend
+# dpl-nginx-78f6f45db4-vfmqh   1/1     Running   0             3m34s   192.168.185.34   acg-worker1    <none>           <none>            pod-template-hash=78f6f45db4,tier=frontend
+
+

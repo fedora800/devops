@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cmp-literal-values
+data:
+  customer: "tesla"
+  owner: "elon musk"
+  address: "california, USA"
+immutable: true                # enhances safety by preventing accidental modification or deletion of ConfigMap keys that our app depends on

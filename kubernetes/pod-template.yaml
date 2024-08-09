@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-my-template
+spec:
+  containers:
+    - name: ctr-pod-my-template
+      command: ["/bin/sh", "-c", "printenv"]
+      command: ['sh', '-c', 'date; echo "container busybox (ctr-pod-my-template) is Running" ; sleep 3600']
+      command: ["demo-app", "--customer-name", "$(CUSTOMER_NAME)"]    # if env variable is preset below via configmap, can be used here to dynamically pickup different values from configmap on container START/RESTART.
+      image: busybox:latest
+      envFrom:                                      # instructs Kubernetes to create ENVIRONMENT variables for the POD from the sources nested within it.
+        - configMapRef:                             # will pick up ALL the key-value pairs from this config map
+            name: cmp-db-login-credentials          # we should see the env values set if we do kubectl logs or kubectl exec and then env command
+      env:                                           
+        - name: CUSTOMER_NAME
+          valueFrom:                                # using env and valueFrom allows us to select only SPECIFIC/individual keys from a ConfigMap
+            configMapKeyRef:
+              name: cmp-literal-values
+              key: owner
+      volumeMounts:
+        - name: vol-from-cmp-from-file
+          mountPath: "/appvol/cmp-from-file"        # as it's based of that specific configmap, this will result in /appvol/cmp-from-file/config.txt being created with the 3 keyvalues.
+          readOnly: true
+  nodeName: k8-worker-015                           # this POD will only run on this node and will overrule nodeSelector, affinity/anti-affinity 
+                                                    # not preferred, recommended is to use label selectors 
+                                                    # eg if Pod needs to be on a node with SSD attached to it, or co-locate Pods that talk a lot in the same availability zone.
+  nodeSelector:                                     # pod will get scheduled on a NODE that has a label of disktype=ssd
+    disktype: ssd
+  tolerations:                                      # this POD can tolerate to run on a NODE which has a taint of tier=frontend
+  - key: "tier"
+    operator: "Equal"
+    value: "frontend"
+    effect: "NoSchedule"
+  volumes:
+    - name: vol-from-cmp-from-file                  # we can create a volume from a ConfigMap
+      configMap:
+        name: cmp-from-file                         # this is a file with 3 variable set
+

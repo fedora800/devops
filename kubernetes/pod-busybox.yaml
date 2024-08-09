@@ -10,4 +10,7 @@ spec:
       - sleep
       - "3600"
     # command: ["/bin/sh", "-c", "while true; do date >> /tmp/looptest.log ; ls -l /tmp/looptest.log  >> /tmp/looptest.log; sleep 5; done"]
+    #or command: ['sh', '-c', 'date; echo "ctr-busybox (image=busybox) in pod-busybox is now running and will terminate in 1hr" ; sleep 3600']
     # to access -> kubectl exec -it pod-busybox -- sh
+
+# busybox does not have apt, bash, curl so is quite limited and prefer to use nicolaka/netshoot as a troubleshooting pod which is better
