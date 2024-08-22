@@ -1027,3 +1027,45 @@ Finished: ABORTED
 
 
 
+--------------------------------------------------------------------------------
+// others i have gathered from online articles
+
+
+        stage('TRIVY FS SCAN') {
+            steps {
+                sh "trivy fs . > trivyfs.txt"
+            }
+        }
+
+        stage("TRIVY"){
+            steps{
+                sh "trivy image deepsharma/amazon-clone:latest > trivyimage.txt" 
+            }
+        }
+
+        stage("Docker Build & Push"){
+            steps{
+                script{
+                   withDockerRegistry(credentialsId: 'docker', toolName: 'docker'){   
+                       sh "docker build -t amazon-clone ."
+                       sh "docker tag amazon-clone deepsharma/amazon-clone:latest "
+                       sh "docker push deepsharma/amazon-clone:latest "
+                    }
+                }
+            }
+        }
+
+
+        stage('Deploy to container'){
+            steps{
+                sh 'docker run -d --name amazon-clone -p 3000:3000 deepsharma/amazon-clone:latest'
+            }
+        }
+
+
+
+
+
+
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
