@@ -2,6 +2,8 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: pod-busybox
+  labels:
+    pl-app: support-tools
 spec:
   containers:
   - name: ctr-busybox

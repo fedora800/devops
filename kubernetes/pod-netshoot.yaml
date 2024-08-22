@@ -2,11 +2,20 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: pod-netshoot
+  labels:
+    pl-app: support-tools
 spec:
+  volumes:
+    - name: vol-from-pv-storage
+      persistentVolumeClaim:
+        claimName: pvc-manual-10mb
   containers:
   - name: ctr-netshoot
     image: nicolaka/netshoot
     command: ["/bin/bash", "-c", "while true; do ping localhost; sleep 60;done"]
+    volumeMounts:
+      - name: vol-from-pv-storage                 # we can mount multiple pre-defined volumes (above) into the containers
+        mountPath: "/appvol/pvc-100MB"        
 
 # i prefer to use this than busybox for troubleshooting in cluster pods and network connections
 

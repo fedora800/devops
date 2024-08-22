@@ -5,7 +5,8 @@ metadata:
 spec:
   type: ClusterIP                  # only accessible within the k8s cluster, so we will need to create a pod and connect into it to curl to this service
   selector:                        # this criteria determines which pods this service will route traffic to
-    tier: frontend
+    tier: frontend                 # these LABELS need to be matching the labels of the PODS to actually set up its endpoints
+                                   # sometimes on imperative commands, it can auto-pick up from the pods labels based upon its also
 
   ports:
     - protocol: TCP

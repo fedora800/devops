@@ -2,6 +2,8 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: pod-nginx
+  labels:
+    pl-component: frontend
 spec:
   containers:
   - name: nginx

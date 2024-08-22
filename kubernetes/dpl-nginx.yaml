@@ -3,16 +3,16 @@ kind: Deployment
 metadata:
   name: dpl-nginx
   labels:
-    tier: frontend
+    pl-tier: frontend
 spec:
   selector:
     matchLabels:
-      tier: frontend
+      pl-tier: frontend
   replicas: 3
   template:
     metadata:
       labels:
-        tier: frontend
+        pl-tier: frontend
     spec:
       containers:
       - name: ctr-nginx

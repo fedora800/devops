@@ -2,6 +2,8 @@ apiVersion: v1
 kind: Pod 
 metadata:
   name: pod-multi-4-containers
+  labels:
+    pl-tier: staging
 spec:
   containers:
   - name: ctr-1-nginx
@@ -13,10 +15,10 @@ spec:
     image: redis:latest
 
   - name: ctr-3-busybox-1
-    image: busybox
+    image: busybox:1.28
     command: ['sh', '-c', 'date; echo "container 3 is Running" ; sleep 3600']
 
   - name: ctr-4-busybox-2
-    image: busybox
+    image: busybox:1.36
     command: ['sh', '-c', 'date; echo "container 4 is Running" ; sleep 3600']
 

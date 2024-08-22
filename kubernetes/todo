@@ -1,0 +1,40 @@
+
+For example, suppose you have a set of Pods that each listen on TCP port 9376 and are labelled as app.kubernetes.io/name=MyApp. You can define a Service to publish that TCP listener:
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  selector:
+    app.kubernetes.io/name: MyApp
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 9376
+
+
+Applying this manifest creates a new Service named "my-service" with the default ClusterIP service type. The Service targets TCP port 9376 on any Pod with the app.kubernetes.io/name: MyApp label.
+
+Kubernetes assigns this Service an IP address (the cluster IP), that is used by the virtual IP address mechanism. For more details on that mechanism, read Virtual IPs and Service Proxies.
+
+The controller for that Service continuously scans for Pods that match its selector, and then makes any necessary updates to the set of EndpointSlices for the Service.
+
+
+A Service can map any incoming port to a targetPort. By default and for convenience, the targetPort is set to the same value as the port field.
+
+--------------------------------------------------------------------------------
+
+pv-1gb-for-sqlite.yaml
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-1gb-for-sqlite
+spec:
+  storageClassName: ""
+  claimRef:
+    name: foo-pvc
+    namespace: foo
+
+--------------------------------------------------------------------------------

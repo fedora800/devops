@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: dst-my-daemonset-1
+spec:
+  selector:                # Ensures that the DaemonSet manages only Pods with the specified label (runas: daemon-set)
+    matchLabels:
+      runas: daemon-set
+  template:
+    metadata:
+      labels:
+        runas: daemon-set
+    spec:
+      affinity:                  # to specify rules about which nodes your Pod should (or should not) be scheduled on
+        nodeAffinity:                # Allows you to set complex rules for node selection, including In, NotIn, Exists, etc.
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:              # Specifies the condition you want for node selection. Here, NotIn ensures that the Pod won't be scheduled on acg-worker2.
+              - key: kubernetes.io/hostname
+                operator: NotIn
+                values:
+                - acg-worker2
+      #### NOTE - i have affinity AND tolerations here. need to make sure if they would work together. and then, check if this is OR or an AND condition.
+      tolerations:                           # node was tainted to only allow pods with this label -> $ kl taint node acg-worker2 dontallow=bbox:NoSchedule
+      - key: dummykey      # a dummy toleration so as to make sure to NOT MATCH the taint as we did not want it to run on acg-worker2 but all others
+        operator: Equal
+        value: dummyvalue
+      containers:
+      - name: ctr-dst-nginx
+        image: nginx
+

@@ -29,3 +29,19 @@ BinaryData
 ====
 
 Events:  <none>
+
+
+$ kubectl get cm cmp-from-file -o yaml
+apiVersion: v1
+data:
+  config.txt: |
+    customer2=microsoft
+    ceo=satya nadela
+    address=seattle, USA
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2024-08-03T10:06:17Z"
+  name: cmp-from-file
+  namespace: default
+  resourceVersion: "4257818"
+  uid: 89456511-df6b-4866-8e7d-4fb3af64c477

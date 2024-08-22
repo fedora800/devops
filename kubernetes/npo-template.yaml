@@ -1,0 +1,53 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: test-network-policy
+  namespace: default          # all things mention in spec below will APPLY TO THIS NAMESPACE ONLY so VERY IMP to look at this wholistically when analyzing pods, svcs, dpls etc etc
+spec:
+  podSelector:           # policy will apply to these pod label matches only. else if podSelector not defined, all pods in namespace
+                         # podSelector: {} for any/all
+    matchLabels:
+      role: db
+  policyTypes:    # if not specified, default is Ingress only
+  - Ingress
+  - Egress
+  ingress:         # allows traffic which should match BOTH from AND ports sections. this is only 1 ingress rule block, there can be many
+  - from:         # below is an OR condition, ie traffic can come via one of these 3 sources.  - on the block level means OR condition, without it means AND condition
+    - ipBlock:               # source 1 - ALLOW connections from the IP subnet mentioned and the range in except will be BLOCKED.
+        cidr: 172.17.0.0/16
+        except:
+        - 172.17.1.0/24
+    - namespaceSelector:     # source 2 - tells from which namespace to allow all its pods
+        matchLabels:
+          project: myproject
+    - podSelector:           # source 3 - only allows from pods matching this label (from the namespace of the policy; mentioned at top)
+        matchLabels:
+          role: frontend
+    ports:
+    - protocol: TCP
+      port: 6379
+  egress:               # egress to match BOTH the to and ports sections
+  - to:
+    - ipBlock:
+        cidr: 10.0.0.0/24
+    ports:
+    - protocol: TCP
+      port: 5978
+
+
+# So, the example NetworkPolicy:
+# 
+# 1.  isolates role=db pods in the default namespace for both ingress and egress traffic (if they weren't already isolated)
+# 
+# 2.  (Ingress rules) allows connections to all pods in the default namespace with the label role=db on TCP port 6379 from:
+#     -   any pod in the default namespace with the label role=frontend
+#     -   any pod in a namespace with the label project=myproject
+#     -   IP addresses in the ranges 172.17.0.0–172.17.0.255 and 172.17.2.0–172.17.255.255 (ie, all of 172.17.0.0/16 except 172.17.1.0/24)
+# 
+# 3.  (Egress rules) allows connections from any pod in the default namespace with the label role=db to CIDR 10.0.0.0/24 on TCP port 5978
+
+
+# We cannot Targeting of services by name (you can, however, target pods or namespaces by their labels, which is often a viable workaround).
+
+
+

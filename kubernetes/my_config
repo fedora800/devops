@@ -66,7 +66,8 @@ current-context: cx-staging-developer
 
 
 # --------------------------------------------------------------------------------
-# 2 clusters, 3 users and 3 contexts
+# 2 clusters and 3 users and each cluster having it's own set of namespaces
+# 3 contexts set on above combinations
 # $ kubectl config --kubeconfig=my_config get-contexts
 # CURRENT   NAME                   CLUSTER      AUTHINFO   NAMESPACE
 #           cx-prod-support        cl-prod      dev-user   monitoring

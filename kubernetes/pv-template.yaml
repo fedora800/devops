@@ -1,0 +1,6 @@
+
+todo
+
+
+When a PVC does not specify a storageClassName, the default StorageClass is used.
+
