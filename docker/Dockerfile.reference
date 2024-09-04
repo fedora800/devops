@@ -1,7 +1,7 @@
 # Comments can be put with a hash at the beginning of the line. there is no block comment syntax, each line will need the hash.
 # Can define argument variables, these are only available during the build of a Docker image (RUN etc), not after the image is created 
-# Note that we can override the ARGS at cmd line by using this option for each ARG > docker build --tag image1 -f Dockerfile.arg --build-arg "UBUNTU_VERSION=22.04" .
-# $ sudo docker build --build-arg "ARG_IMG_BUILD_VERSION=57" --tag fedora800/basic-nginx-docker-app:latest --tag fedora800/basic-nginx-docker-app:57 .
+# Note that we can override the ARGS at cmd line by using this option for each ARG > docker build --tag image1 -f Dockerfile.arg (DIR PATH only) --build-arg "UBUNTU_VERSION=22.04" . (context path)
+# $ sudo docker build -f src/frontend/Dockerfile --tag fedora800/stocksanalyzer-system-app:24 --tag fedora800/stocksanalyzer-system-app:latest src/frontend
 #An ARG declared before a FROM is outside of a build stage, so it can’t be used in any instruction after a FROM. 
 #ARG variables usually store important high-level configuration parameters, such as the version of the OS or a library. They are build-time variables, i.e., their only purpose is to assist in building a Docker image. Containers do not inherit ARG variables from images. However, users can later retrieve ARG values from an image with the docker history command.
 # https://blog.bitsrc.io/how-to-pass-environment-info-during-docker-builds-1f7c5566dd0e

@@ -1,11 +1,13 @@
 
 /*
+-------------------- section : Sample Git Repo structure  --------------------
 -------------------- section : Functions --------------------
 -------------------- section : Environment Variables --------------------
 -------------------- section : Parameters --------------------
 -------------------- section : Git Related --------------------
 -------------------- section : Build Related --------------------
--------------------- section : Code Review Related --------------------
+-------------------- section : Code Quality Related --------------------
+-------------------- section : Vulnerability Scan Related --------------------
 -------------------- section : Testing Related --------------------
 -------------------- section : Metric Checks Related --------------------
 -------------------- section : Packaging Related --------------------
@@ -15,78 +17,108 @@
 */
 
 
+//-------------------- section : Sample Git Repo structure  --------------------
+my-project/
+│
+├── src/
+│   └── main/
+│       └── java/
+│           └── com/
+│               └── example/
+│                   └── App.java
+│
+├── Jenkinsfile  // Main Jenkinsfile
+├── Jenkinsfile.test  // Jenkinsfile for test pipelines
+├── Jenkinsfile.deploy  // Jenkinsfile for deployment pipelines
+└── pom.xml
+
 
 //-------------------- section : Functions --------------------
+// These need to be outside the pipeline block
 
 // function to print the stage name more clearly in the jenkins console output, can be called within each stage
-def PrintStageName() {     TESTED-AND-WORKS
-  echo "-----------------STAGE: ${env.STAGE_NAME}-----------------"
+def PrintStageName() {     // TESTED-AND-WORKS
+  echo "-----------------STAGE: ${env.STAGE_NAME}-----------------$(date +%T)---------"
 }
 
+
+
+
+//-------------------- pipeline starts here --------------------
 pipeline {
 
-    //agent any
-    //agent none           //if we want to specify different agents for different stages, we can set none here and then the agent under the stage
+  //agent any
+  //agent none           //if we want to specify different agents for different stages, we can set none here and then the agent under the stage
 
-    agent {
-        label 'linux-agents'
-    }   
+  agent {
+    label 'linux-agents'
+  }   
 
-    // below needs to be configured first
-    tools {
-        maven 'jenkins-maven-3.8.6'
-        jdk   'jenkins-jdk-11'
-    }   
+  // below needs to be configured first
+  tools {
+    jdk   'jenkins-jdk-11'
+    maven 'jenkins-maven-3.8.6'
+    python 'python-3.10.12'  // to-test
+
+  }   
 
   triggers {  //before the stages, so no need to configure it seperately in diff section on jenkins gui
     pollSCM 'H/10 * * * *'
   }
 
+
+
 // -------------------- section : Environment Variables --------------------
 
-    // Key value pairs which helps passing values to job during job runtime from outside of Jenkinsfile. It’s one way of externalizing configuration. These are GLOBAL USER DEFINED ENVIRONMENT variables.
-    // We put it at the top before stages and these env variables will be available at any stage in pipeline. 
-    /* Note - 2 other ways
-       env variables can also be defined on the jenkins portal via Manage Jenkins > System Configuration > Configure System > Global Properties > Environment Variables
-       Initialize Environment variables using sh scripts in Jenkinsfile
-    */  
-  environment {
-
-    DOCKER_REGISTRY_URL = "https://registry.hub.docker.com"
-    DOCKERHUB_CREDENTIALS = "j_dockerhub_credentials"
-    DOCKERHUB_USERNAME = "fedora800"
-    DOCKERHUB_PASSWORD_TOKEN = "dckr_pat_bIVSJy3byydo43Wnzb6WxrV17Ag"     // to not use this unencrpyted, we might need to use jenkins functions to docker login instead of sh scripts
-    DOCKER_IMAGE_TAG_1 = "${env.BUILD_NUMBER}"
-    DOCKER_IMAGE_TAG_2 = "latest"
+  // Key value pairs which helps passing values to job during job runtime from outside of Jenkinsfile. It’s one way of externalizing configuration. 
+  // https://www.lambdatest.com/blog/set-jenkins-pipeline-environment-variables-list/
+  // The environment directive specifies a sequence of key-value pairs which will be defined as environment variables for all steps, or stage-specific steps, depending on where the environment directive is located within the Pipeline.
+  // These are LOCAL ENVIRONMENT variables for this ENTIRE PIPELINE but only this one.
+  // GLOBAL ENVIRONMENT outside defined outside in Jenkins can be used across multiple pipelines.
+  // We put it at the top before stages and these env variables will be available at any stage in pipeline. If we put in a stage, then it's for that stage only.
+  /* Note - 2 other ways
+    env variables can also be defined on the jenkins portal via Manage Jenkins > System Configuration > Configure System > Global Properties > Environment Variables
+    Initialize Environment variables using sh scripts in Jenkinsfile
+  */  
+  environment {  // TESTED-AND-WORKS
 
     GITHUB_REPO_URL = "https://github.com/fedora800/scratch_project.git"
     GITHUB_REPO_BRANCH = "main"
     GITHUB_CREDENTIALS = "j_github_credentials"
 
-    APP_NAME = "basic-nginx-docker-app"
+    DOCKER_REGISTRY_URL = "https://registry.hub.docker.com"
+    DOCKERHUB_CREDENTIALS = "cred_dockerhub"
+    // Do not use below in production situations. Use Credentials on Jenkins to store this securely. Refer withCredentials() calls below
+    DOCKERHUB_USERNAME = "fedora800"
+    //DOCKERHUB_PASSWORD_TOKEN = "dckr_pat_bIVSJy3byydo43Wnzb6WxrV17Ag"     // to not use this unencrpyted, we might need to use jenkins functions to docker login instead of sh scripts
+                                                                          //github push will also fail
+    DOCKER_IMAGE_TAG_1 = "${env.BUILD_NUMBER}"
+    DOCKER_IMAGE_TAG_2 = "latest"
 
+    APP_NAME = "stocksanalyzer-system-app"
 
-        SLACK_CHANNEL = "#deployment-notifications"
-        SLACK_TEAM_DOMAIN = "MY-SLACK-TEAM"
-        SLACK_TOKEN = credentials("slack_token")
-        DEPLOY_URL = "https://deployment.example.com/"
-        // DOCKER_ID = credentials('J_DOCKER_ID')                 // where J_DOCKER_ID is defined as a credential of type secret text on jenkins gui
-        // DOCKER_PASSWORD = credentials('J_DOCKER_PASSWORD')     // where J_DOCKER_PASSWORD is defined as a credential of type secret text on jenkins gui
+    SLACK_CHANNEL = "#deployment-notifications"
+    SLACK_TEAM_DOMAIN = "MY-SLACK-TEAM"
+    SLACK_TOKEN = credentials("slack_token")
+    DEPLOY_URL = "https://deployment.example.com/"
+    // DOCKER_ID = credentials('J_DOCKER_ID')                 // where J_DOCKER_ID is defined as a credential of type secret text on jenkins gui
+    // DOCKER_PASSWORD = credentials('J_DOCKER_PASSWORD')     // where J_DOCKER_PASSWORD is defined as a credential of type secret text on jenkins gui
 
-        COMPOSE_FILE = "docker-compose.yml"
-        REGISTRY_AUTH = credentials("docker-registry")
-        //DOCKERHUB_CREDENTIALS= credentials('dockerhubcredentials')     
+    COMPOSE_FILE = "docker-compose.yml"
+    REGISTRY_AUTH = credentials("docker-registry")
+    //DOCKERHUB_CREDENTIALS= credentials('dockerhubcredentials')     
 
-        STACK_PREFIX = "my-project-stack-name"
- 
-       USER_NAME = "joesmith"
-       USER_ID = 115         // will be stored as a string value
+    STACK_PREFIX = "my-project-stack-name"
 
-       IS_BOOLEAN = false   // will be stored as a string value
+    USER_NAME = "joesmith"
+    USER_ID = 115         // will be stored as a string value
 
-       LS_OUTPUT = "${sh(script:'ls -lah', returnStdout: true).trim()}"
+    IS_BOOLEAN = false   // will be stored as a string value
 
-    }   
+    LS_OUTPUT = "${sh(script:'ls -lah', returnStdout: true).trim()}"
+
+  }   
+
 
 
 //-------------------- section : Parameters --------------------
@@ -110,43 +142,51 @@ pipeline {
       password(name: 'SONAR_SERVER_PWD', description: 'Enter SONAR password')
     }   
 
+// ------- stages start here -----
+// egrep -n "//.*section|stage\(" Jenkinsfile.reference      # run this to get all the stages
   stages {
 
-        // stage-initialization
-        stage('Initialization') { NOT-TESTED
-            environment { 
-                   JOB_TIME = sh (returnStdout: true, script: "date '+%F %T'").trim()
-            }   
-            steps {
-                PrintStageName()
-                sh 'echo $JOB_TIME'
-            }   
-        }   
-
-      // will help us find all the env variables pre-defined for us to use in jenkinsfile
-      stage('List All the Jenkins Environment Variables"){ NOT-TESTED
+    // Initialization which multiple steps in 1 stage
+    stage('Initialization') { // TESTED-AND-WORKS
         steps {
-          PrintStageName()
-          sh "printenv | sort"
-        }
-      }
+            script {
+                PrintStageName()  // Print the name of the current stage
+            }
 
-      // here i have printed env variables in 2 diff methods
-      stage("Print Environment Variables") { // TESTED-AND-WORKS
+            // Step 1: Get and print the Job Time
+            script {
+                def jobTime = sh(script: "date '+%F %T'", returnStdout: true).trim()
+                env.JOB_TIME = jobTime  // Store job time in the environment variable
+                echo "Job Time: ${env.JOB_TIME}"
+            }
+
+            // Step 2: Clean the Jenkins Workspace
+            script {
+                cleanWs()  // Clean the Jenkins workspace
+                echo "Workspace cleaned successfully."
+            }
+        }
+    }
+
+
+      // Print all the env variables already defined for us to use in jenkinsfile
+      // Also, here i have printed env variables in 2 diff methods
+      stage("List All the Jenkins Environment Variables and also Print Environment Variables of my interest") { // TESTED-AND-WORKS
         steps{
           PrintStageName()
+
+          sh "printenv | sort"
+
+          // method 1
           echo "BUILD_NUMBER = ${env.BUILD_NUMBER}"
           echo "STAGE_NAME = ${env.STAGE_NAME}"
           echo "JOB_NAME=${env.JOB_NAME}"
           echo "NODE_NAME=${env.NODE_NAME}"
           echo "USER=${env.USER}"
           echo "WORKSPACE=${env.WORKSPACE}"
-  
+          //method 2  
           sh "BUILD_NUMBER=$BUILD_NUMBER"
           sh "JOB_NAME=$JOB_NAME"
-  
-          sh "printenv | sort"
-  
         }
       }
 
@@ -174,6 +214,11 @@ pipeline {
     }
 
 
+    /*
+    cleanWs() is a Jenkins Pipeline Utility Step that deletes all files and directories in the workspace of the current Jenkins job, 
+    ensuring no leftover files from previous builds affect the current build.
+    This is particularly important when your builds generate temporary files, artifacts, or dependencies that could impact subsequent builds if not removed.
+    */
     stage("Clean Jenkins Workspace") { // TESTED-AND-WORKS
       steps {
         PrintStageName()
@@ -253,7 +298,7 @@ pipeline {
 
 // -------------------- section : Git Related --------------------
 
-    stage('Pull Code from git PUBLIC repo')  { 		// TESTED-AND-WORKS
+    stage('Checkout Code from git PUBLIC repo on github.com')  {    // TESTED-AND-WORKS
       steps {
         PrintStageName()
         script {
@@ -270,7 +315,7 @@ pipeline {
     }
 
 
-    stage('Pull Code from Private git repo -- method 2')  {		//TESTED-AND-WORKS
+    stage('Pull Code from PRIVATE git repo using Jenkins Credentials -- method 2')  {		//TESTED-AND-WORKS
       steps {
         PrintStageName()
         git([url: GITHUB_REPO_URL, branch: GITHUB_REPO_BRANCH, credentialsId: GITHUB_CREDENTIALS])
@@ -317,9 +362,15 @@ pipeline {
         }
 
         // stage-scm-checkout
-        stage("SCM Checkout") { NOT-TESTED
-        steps { echo "SCM Checkout"  }
+        // The checkout step will checkout code from source control; scm is a special variable which instructs the checkout step 
+        // to clone the specific revision which triggered this Pipeline run.
+        stage("Build - SCM Checkout") { NOT-TESTED
+          steps { 
+            echo "Build - SCM Checkout"  
+            checkout scm
+          }
         }
+
 
         // stage-build
         stage("Build and start test image") { NOT-TESTED
@@ -340,11 +391,37 @@ pipeline {
           }
         }
 
+      // Python code build
+      stage('List All the Jenkins Environment Variables"){ NOT-TESTED
+        steps {
+          PrintStageName()
+          sh '''
+          cd myapp
+          pip install -r requirements.txt
+          '''
+        }
+      }
 
-// -------------------- section : Code Review Related --------------------
+// -------------------- section : Code Quality Related --------------------
         // stage-code-review
         stage("Code Review") { NOT-TESTED
         steps { echo "Code Review"  }
+        }
+
+        stage("Sonarqube Analysis "){
+            steps{
+                withSonarQubeEnv('sonar-server') {
+                    sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Netflix \
+                    -Dsonar.projectKey=Netflix '''
+                }
+            }    
+        }
+        stage("quality gate"){
+           steps {
+                script {
+                    waitForQualityGate abortPipeline: false, credentialsId: 'Sonar-token' 
+                }
+            } 
         }
 
 // -------------------- section : Testing Related --------------------
@@ -389,6 +466,51 @@ pipeline {
                 }
             }
         }
+
+
+
+      // Test Python code example
+      stage('Test Python Code"){ NOT-TESTED
+        steps {
+          PrintStageName()
+          sh '''
+          cd myapp
+          python3 hello.py
+          python3 hello.py --name=Brad-Test1
+          '''
+        }
+      }
+
+
+      // Test Python code example
+      stage('Python Test using pytest docker image to run test cases and generate JUnit XML report') {  //NOT-TESTED
+          agent {
+              docker {
+                  //This image parameter downloads the qnib:pytest Docker image and runs this image as a
+                  //separate container. The pytest container becomes the agent that Jenkins uses to run the Test
+                  //stage of your Pipeline project.
+                  image 'qnib/pytest'
+              }
+          }
+          steps {
+              //This sh step executes pytest’s py.test command on sources/test_calc.py, which runs a set of
+              //unit tests (defined in test_calc.py) on the "calc" library’s add2 function.
+              //The --junit-xml test-reports/results.xml option makes py.test generate a JUnit XML report,
+              //which is saved to test-reports/results.xml
+              sh 'py.test --verbose --junit-xml test-reports/results.xml sources/test_calc.py'
+          }
+          post {
+              always {
+                  //This junit step archives the JUnit XML report (generated by the py.test command above) and
+                  //exposes the results through the Jenkins interface.
+                  //The post section’s always condition that contains this junit step ensures that the step is
+                  //always executed at the completion of the Test stage, regardless of the stage’s outcome.
+                  junit 'test-reports/results.xml'
+              }
+          }
+      }
+
+
 
 // -------------------- section : Metric Checks Related --------------------
         // stage-metric-check
@@ -462,7 +584,9 @@ pipeline {
       steps {
         PrintStageName()
         script {
-          sh "docker build --tag $DOCKERHUB_USERNAME/$APP_NAME:$DOCKER_IMAGE_TAG_1 --tag $DOCKERHUB_USERNAME/$APP_NAME:$DOCKER_IMAGE_TAG_2 ."
+          // will need to give NOPASSWD sudo permission for user jenkins so that OS does not ask password for sudo
+          sh "sudo docker build -f src/frontend/Dockerfile --tag ${env.DOCKERHUB_USERNAME}/${APP_NAME}:${DOCKER_IMAGE_TAG_1} --tag ${DOCKERHUB_USERNAME}/${APP_NAME}:${DOCKER_IMAGE_TAG_2} src/frontend"
+
         }
       }
     }
@@ -487,13 +611,38 @@ pipeline {
     }
 
 
+
+    stage('Docker Login using Jenkins Credentials ID') {    //TESTED-AND-WORKS
+        steps {
+          PrintStageName()
+          script {
+            // Fetch the username and password token from credentials id and assign values to local variables
+            withCredentials([usernamePassword(credentialsId: 'cred_dockerhub', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_TOKEN')]) {
+              // Securely perform Docker login using local environment variables
+              // triple single (''') quotes for sh step to ensure that multi-line commands and variable expansions are handled properly by the shell.
+              sh '''
+              echo "$DOCKER_TOKEN" | sudo docker login -u "$DOCKER_USERNAME" --password-stdin
+              '''
+            }
+          }
+          script {
+            sh '''
+            echo "Builds available to push for this app:"
+            sudo docker image ls | egrep "REPO|${APP_NAME}"
+            '''
+          }
+        }
+    }
+
+
+
     stage("Push Docker Image - Using Shell commands") {         // TESTED-AND-WORKS
       steps {
         PrintStageName()
         script {
-//        sh "docker push jsmith/spring-petclinic:latest" // example
-          sh "docker push $DOCKERHUB_USERNAME/$APP_NAME:$DOCKER_IMAGE_TAG_1"
-          sh "docker push $DOCKERHUB_USERNAME/$APP_NAME:$DOCKER_IMAGE_TAG_2"
+//        sh "sudo docker push jsmith/spring-petclinic:latest" // example
+          sh "sudo docker push ${DOCKERHUB_USERNAME}/${APP_NAME}:${DOCKER_IMAGE_TAG_1}"
+          sh "sudo docker push ${DOCKERHUB_USERNAME}/${APP_NAME}:${DOCKER_IMAGE_TAG_2}"
         }
       }
     }
@@ -519,14 +668,50 @@ pipeline {
     }
 
 
+    stage("Clean up docker images that have got built up on (remote) hub.docker.com") {              // NOT-TESTED
+      steps {
+        PrintStageName()
+        script {
+          sh "echo TODO"
+        }
+      }
+    }
+
 // -------------------- section : Docker Related (Using Jenkins functions) --------------------
 
+   // Needs Docker Pipeline plugin *** IMP ***
+
+    stage("Build a Docker Image") {     //NOT TESTED
+      steps {
+        PrintStageName()
+          script {
+            docker.withRegistry($DOCKER_REGISTRY_URL, $DOCKERHUB_CREDENTIALS) {
+            //docker.withRegistry('https://registry.hub.docker.com', 'j_dockerhub_credentials') {
+            // Build the image locally
+            def myDockerImage1 = docker.build("${env.DOCKERHUB_USERNAME}/${env.APP_NAME}:${env.DOCKER_IMAGE_TAG_1}")
+            def myDockerImage2 = docker.build("${env.DOCKERHUB_USERNAME}/${env.APP_NAME}:${env.DOCKER_IMAGE_TAG_2}")
+          }
+        }
+      }
+    }
+
+    stage('Docker Login using Jenkins Credentials ID') {  // TESTED-AND-WORKS
+        steps {
+          PrintStageName()
+            script {
+                // Fetch the username and password token from credentials id and assign values to local variables
+                withCredentials([usernamePassword(credentialsId: 'cred_dockerhub', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_TOKEN')]) {
+                  // Securely perform Docker login using local environment variables
+                  sh 'echo $DOCKER_TOKEN | docker login -u $DOCKER_USERNAME --password-stdin'
+                }
+            }
+        }
+    }
 
     stage("Connect to Docker Registry and authenticate with credentials - Using Jenkins function") {           // TESTED-AND-WORKS
       steps {
         PrintStageName()
           script {
-            // needs Docker Pipeline plugin
             // Connect to Docker Registry
             //docker.withRegistry($DOCKER_REGISTRY_URL, $DOCKERHUB_CREDENTIALS) {
             docker.withRegistry('https://registry.hub.docker.com', 'j_dockerhub_credentials') {
@@ -586,6 +771,7 @@ pipeline {
 // DOCKER stages -- USING JENKINS FUNCTIONS  (end)
 // --------------------------------------------------------------------------------
 
+// -------------------- section : Vulnerability Scan Related --------------------
 
         // stage-trivy-artifact-scan
         stage("Scan the Docker Image with Trivy using static analysis for vulneribilities") { NOT-TESTED
@@ -1022,7 +1208,6 @@ Finished: ABORTED
 
 }
 
-// $ grep -n "section|stage\(" Jenkinsfile.reference     # run this to get all the stages
 
 
 
@@ -1030,6 +1215,21 @@ Finished: ABORTED
 --------------------------------------------------------------------------------
 // others i have gathered from online articles
 
+
+// -------------------- section : Vulnerability Scan Related --------------------
+
+        stage('Install Dependencies') {
+            steps {
+                sh "npm install"
+            }
+        }
+
+        stage('OWASP FS SCAN') {
+            steps {
+                dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
+                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+            }
+        }
 
         stage('TRIVY FS SCAN') {
             steps {
@@ -1056,6 +1256,13 @@ Finished: ABORTED
         }
 
 
+        stage("TRIVY"){
+            steps{
+                sh "trivy image brodevops/netflix:latest > trivyimage.txt" 
+            }
+        }
+
+
         stage('Deploy to container'){
             steps{
                 sh 'docker run -d --name amazon-clone -p 3000:3000 deepsharma/amazon-clone:latest'
@@ -1063,9 +1270,11 @@ Finished: ABORTED
         }
 
 
+  } // end-stages
+
+} // end-pipeline
 
 
+// --------------------------------------------------------------------------------
 
 
---------------------------------------------------------------------------------
---------------------------------------------------------------------------------

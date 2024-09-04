@@ -1,0 +1,28 @@
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pvl-jenkins
+  labels:
+    type: local
+spec:
+  storageClassName: local-storage
+  claimRef:
+    name: pvc-jenkins
+    namespace: devops-tools
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  local:
+    path: /mnt
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - worker-node01
+
+

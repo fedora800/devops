@@ -3,7 +3,9 @@ kind: Pod
 metadata:
   name: pod-my-template
   labels:                                          # VERY IMPORTANT to have atleast 1 label, else SERVICE will not select as an endpoint, i keep forgetting this
-    pl-component: frontend
+    pl-app: demo-project-1
+    pl-tier: frontend
+    pl-env: prod
 spec:
   volumes:
     - name: vol-from-cmp-from-file                  # we can create a volume from a ConfigMap

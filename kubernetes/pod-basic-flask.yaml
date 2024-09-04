@@ -3,7 +3,9 @@ kind: Pod
 metadata:
   name: basic-flask-app
   labels:
-    pl-component: frontend
+    pl-app: demo-project-1
+    pl-tier: frontend
+    pl-env: prod
 spec:
   containers:
   - name: ctr-basic-flask-app
