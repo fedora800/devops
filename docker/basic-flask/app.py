@@ -24,12 +24,3 @@ def index():
 if __name__ == "__main__":
     app.run(host='0.0.0.0', debug=True)
 
-
-
-import numpy as np
-
-my_dict = {'yash': 2, 'rajnish': 9,
-        'sanjeev': 15, 'chanda': 10, 'suraj': 32}
-
-
-print("-----sorting by key-----")
