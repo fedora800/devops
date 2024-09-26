@@ -12,4 +12,6 @@ files are created with extension .drawio
 --------------------------------------------------------------------------------
 My other screenshot'ted devops diagrams from around the internet are in my wiki here - https://itinim.co.uk/dokuwiki/doku.php?id=devops_diagrams
 
+kubernetes icons - https://github.com/kubernetes/community/tree/master/icons
+
 
