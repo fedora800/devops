@@ -1,7 +1,7 @@
 # Comments can be put with a hash at the beginning of the line. there is no block comment syntax, each line will need the hash.
 # Can define argument variables, these are only available during the build of a Docker image (RUN etc), not after the image is created 
-# Note that we can override the ARGS at cmd line by using this option for each ARG > docker build --tag image1 -f Dockerfile.arg (DIR PATH only) --build-arg "UBUNTU_VERSION=22.04" . (context path)
-# $ sudo docker build -f src/frontend/Dockerfile --tag fedora800/stocksanalyzer-system-app:24 --tag fedora800/stocksanalyzer-system-app:latest src/frontend
+# Note that we can override the ARGS at cmd line by using this option for each ARG > docker image build --tag image1 -f Dockerfile.arg (DIR PATH only) --build-arg "UBUNTU_VERSION=22.04" . (context path)
+# $ sudo docker image build -f src/frontend/Dockerfile --tag fedora800/stocksanalyzer-system-app:24 --tag fedora800/stocksanalyzer-system-app:latest src/frontend
 #An ARG declared before a FROM is outside of a build stage, so it can’t be used in any instruction after a FROM. 
 #ARG variables usually store important high-level configuration parameters, such as the version of the OS or a library. They are build-time variables, i.e., their only purpose is to assist in building a Docker image. Containers do not inherit ARG variables from images. However, users can later retrieve ARG values from an image with the docker history command.
 # https://blog.bitsrc.io/how-to-pass-environment-info-during-docker-builds-1f7c5566dd0e
@@ -14,6 +14,11 @@
 # https://vsupalov.com/docker-env-vars/
 # https://docs.docker.com/build/building/best-practices/#run
 
+# The ARG instruction defines a variable that users can pass at build time to the builder with the docker image build --build-arg <varname>=<value> command.
+# ARG variables are not available when the container is running, for that use ENV.
+# The docker image build command will pass this version as a BUILD ARGUMENT (--build-arg)
+# docker image build --build-arg APP_VERSION=${env.APP_VERSION} -t myrepo/myapp:${env.APP_VERSION} .
+ARG APP_VERSION
 ARG UBUNTU_VERSION=18.01
 ARG CUR_DATETIME=16-Jul-2023_13:15
 
@@ -23,6 +28,8 @@ LABEL maintainer="fedora800@devops.com"
 #ENV variables store values such as secrets, API keys, and database URLs. Unlike ARGs, they persist inside the image and the containers created from that template. Users can override ENV values in the command line or provide new values in an ENV file. 
 # So, we will see these when we do set or env command in the containers or also when we do container inspect and look for Env section.
 # This value will be in the environment for all subsequent instructions in the build stage
+# Sets environment variables inside the image. 
+# Unlike ARG, it will be available during build time as well as in a running container. 
 # we can also override when running the container like -> sudo docker run -itd --env "POSTGRES_ENV_PASSWORD=foo" --env "POSTGRES_ENV_USER=bar" --name ctrname1 dockerhub_id/image_name
 ** i could not get container to override the ENV variable with values passed by --env, only the hardcoded value inside docker stayed, need to look further **********
 # if there are too many env variables > sudo docker run --itd --env_file ./env.list --name ctrname1 dockerhub_id/image_name
@@ -31,6 +38,10 @@ ENV MAIN_USERS=QA_TEAM_2
 ENV UBUNTU_VERSION_ENV=$UBUNTU_VERSION
 ENV MY_DOG=Rex\ The\ Dog
 ENV URL_1 my-example.com
+
+
+# Set the APPLICATION environment variable using the value passed into the ARGUMENT variable
+ENV APP_VERSION=${APP_VERSION}
 
 # dont write pyc files
 # dont buffer to stdout/stderr
@@ -48,6 +59,8 @@ Maintainer "fedora800"
 # To use the default value of an ARG that was declared before the first FROM, repeat the instruction the ARG instruction without a value. This works
 ARG UBUNTU_VERSION
 ARG ARG_IMG_BUILD_VERSION
+
+# RUN executes commands during the image build process
 # ** Every RUN line creates a new image layer **
 RUN echo $UBUNTU_VERSION > /tmp/ubuntu_version_in_image
 RUN echo $ARG_IMG_BUILD_VERSION  > /tmp/image_version
@@ -64,6 +77,9 @@ Sets the working directory inside the container to eg /app
 Any RUN, CMD, ADD, COPY, or ENTRYPOINT command will be executed in the specified working directory.
 If the WORKDIR command is not written in the Dockerfile, it will automatically be created by the Docker compiler.
 
+# WORKDIR
+# Sets the current working directory. You can reuse this instruction in a Dockerfile to set a different working directory. 
+# If you set WORKDIR, instructions like RUN, CMD, ADD, COPY, or ENTRYPOINT gets executed in that directory.
 WORKDIR can be reused to set a new working directory at any stage of the Dockerfile. The path of the new working directory must be given relative to the current working directory.
 eg -
 FROM ubuntu:16.04
@@ -104,8 +120,15 @@ TODO -- end
 
 WORKDIR /app
 
-# Copy the current directory contents into the container at /app
+
+# Copies local files and directories to the image
+# this one will copy the current directory contents into the container at /app
 COPY . /app
+
+# ADD
+# It is a more feature-rich version of the COPY instruction. 
+# It also allows copying from the URL that is the source and tar file auto-extraction into the image. 
+# However, usage of COPY command is recommended over ADD. If you want to download remote files, use curl or get using RUN.
 
 # Install any needed packages specified in requirements.txt
 RUN pip install -r requirements.txt --default-timeout=100
@@ -113,9 +136,9 @@ RUN ["apt-get", "update"]
 RUN ["apt-get", "-y", "install", "vim"]
 RUN apt-get -y install curl>=7.67.0
 # This will print out the value of the ARG in the output of the build log
-RUN echo "Hey docker build person! ARG CUR_DATETIME=$CUR_DATETIME"
+RUN echo "Hey docker image build person! ARG CUR_DATETIME=$CUR_DATETIME"
 # This will print out the value of the ENV in the output of the build log but also make it available in every container using this
-RUN echo "Hey docker build person! ENV MAIN_USERS=$MAIN_USERS"
+RUN echo "Hey docker image build person! ENV MAIN_USERS=$MAIN_USERS"
 
 # Make port 8501 available for docker procs/inter-container communication only.
 # Note - it does NOT make the port open on the PUBLIC IP 
@@ -128,17 +151,35 @@ HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
 #    CMD curl --fail http://localhost:8501/_stcore/health
 
 # This makes the container run as an executable
+# ENTRYPOINT defines the command that should be run to start the web server when the container is started.
+# Specifies the commands that will execute when the Docker container starts. 
+# If you don’t specify any ENTRYPOINT, it defaults to /bin/sh -c. You can also override ENTRYPOINT using the --entrypoint flag using CLI. 
 ENTRYPOINT ["streamlit", "run", "streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0"]
 
 # CMD command tells Docker how to run the application we packaged in the image. The CMD follows the format CMD [“command”, “argument1”, “argument2”].
 # Only 1 CMD allowed in a file
+# If multiple CMDs then it only applies to the last one. It can be overridden from the Docker CLI.
 CMD /bin/echo "Hello from my container"
+# In below command, daemon off; directive tells Nginx to stay in the foreground. 
+# This means the nginx process will keep running and won’t stop until you stop the container. It disables the self-daemonizing behavior of Nginx. The -g option specifies a directive to Nginx.
+CMD ["/usr/sbin/nginx", "-g", "daemon off;"]
+
 
 # Difference between ENTRYPOINT and CMD
 # https://spacelift.io/blog/docker-entrypoint-vs-cmd
 # https://www.bmc.com/blogs/docker-cmd-vs-entrypoint/
 # https://www.docker.com/blog/docker-best-practices-choosing-between-run-cmd-and-entrypoint/
 
+# VOLUME
+# It is used to create or mount the volume to the Docker container
 
+# USER
+# Sets the user name and UID when running the container. You can use this instruction to set a non-root user of the container.
+
+# SHELL
+# This instruction is used to set shell options and default shell for the RUN, CMD, and ENTRYPOINT instructions that follow it.
+
+# docker image build commands
+# sudo docker image build -f src/frontend/Dockerfile --tag fedora800/stocksanalyzer-system-app:24 --tag fedora800/stocksanalyzer-system-app:latest src/frontend
 
 

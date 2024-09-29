@@ -1,12 +1,14 @@
 
 /*
-A00 -------------------- section : Functions --------------------
 B00 -------------------- section : Environment Variables --------------------
 C00 -------------------- section : Parameters --------------------
 P00 -------------------- section : Beginning Stages --------------------
 stage('P01 - Initialization - using 2 scripts/steps') { // TESTED-AND-WORKS
 stage('P02 - List All the Jenkins Environment Variables') {  // NOT-TESTED
 stage("P03 - Print Environment Variables - 2 different methods") { // TESTED-AND-WORKS
+stage('P04 - Check Webhook Parameters') { // TESTED-AND-WORKS
+stage('P05 - Print GitHub Webhook Headers on Generic Webhook Trigger') {  // TESTED-AND-WORKS
+stage('P06 - Process Payload Received on the GitHub Webhook for the Generic Webhook Trigger') { //TESTED-AND-WORKS
 D00 -------------------- section : Git Related --------------------
 stage('D01 - Pull Code from git PUBLIC repo -- method 1 - using git branch')  { 		// TESTED-AND-WORKS
 stage('D02 - Pull Code from Private git repo -- method 2 - using git() function')  {		//TESTED-AND-WORKS
@@ -18,8 +20,14 @@ stage('E01 - Build using gradlew') { //NOT-TESTED
 stage('E02 - Build Python Code - Frontend') { //NOT-TESTED
 stage('E03 - Completely seperate Jenkinfile pipeline for Frontend') { // NOT-TESTED
 stage('E04 - Completely seperate Jenkinfile pipeline for Backend') { // NOT-TESTED
+stage('E05 - Call another Jenkins Build Pipeline/Job') {  //NOT-TESTED
+
 F00 -------------------- section : Code Review Related --------------------
+
 G00 -------------------- section : Testing Related --------------------
+stage('G06 - Sonarqube Analysis') {  //NOT-TESTED
+
+
 H00 -------------------- section : Metric Checks Related --------------------
 I00 -------------------- section : Packaging Related --------------------
 
@@ -51,6 +59,8 @@ stage('L09 - Verify the Deployment using Jenkins Pipeline Plugin') { // NOT-TEST
 stage('L10 - Update K8S manifest & push to GitOps Repo') { // NOT-TESTED
 stage('L11 - Update K8S manifest & push to GitOps Repo - Example 2') { // NOT-TESTED
 stage('L12 - Clone GitOps Repo and push manifest file changes to this GitOps Repo') {  // TESTED-AND-WORKS
+stage('L13 - Connect to Kubernetes cluster using config file credentials and lookup resources') { //TESTED-AND-WORKS
+stage('L14 - Deploy to Kubernetes - Connect using config file credentials and APPLY manifest changes') {  //TESTED-AND-WORKS
 
 M00 -------------------- section : Security Related --------------------
 stage("M04 - Build Docker Image with version passed as argument- Using Shell commands") { //TESTED-AND-WORKS
@@ -62,18 +72,14 @@ stage('M09 - withCredentials - dockerCert') { //NOT-TESTED
 stage('M10 - withCredentials - list credentials ids') { //NOT-TESTED
 
 // -------------------- Do Post for all stages --------------------
+
+A00 -------------------- section : Functions --------------------
 */
 
 
 // ----------------------------------------------------------------------------------------------------------
 // ----------------------------------------------------------------------------------------------------------
 
-//-------------------- section : Functions --------------------
-
-// function to print the stage name more clearly in the jenkins console output, can be called within each stage
-def PrintStageName() {     TESTED-AND-WORKS
-  echo "-----------------STAGE: ${env.STAGE_NAME}-----------------"
-}
 
 pipeline {
 
@@ -90,10 +96,27 @@ pipeline {
         jdk   'jenkins-jdk-11'
     }   
 
-  triggers {  //before the stages, so no need to configure it seperately in diff section on jenkins gui
+  //before the stages, so no need to configure it seperately in diff section on jenkins GUI and can be gitops'd here
+  triggers {
     pollSCM 'H/10 * * * *'
+    GenericTrigger(                               // i think this block is for the generic webhook trigger plugin
+      genericVariables: [
+        [key: 'ref', value: '$.ref'],
+        [key: 'before', value: '$.before'],
+        [key: 'after', value: '$.after'],
+        [key: 'repo_url', value: '$.repository.url'],
+      ],
+      causeString: 'Triggered By Gitlab On $ref',
+      token: 'gojenkinsdemorelease',
+      tokenCredentialId: '',
+      // filter the deletion of release branch
+      regexpFilterText: '$after',
+      regexpFilterExpression: '^(?!0000000000000000000000000000000000000000$).*$',
+      printContributedVariables: true,
+      printPostContent: true,
+      silentResponse: false,
+    )
   }
-
 
 // B00 -------------------- section : Environment Variables --------------------
 
@@ -103,6 +126,7 @@ pipeline {
        env variables can also be defined on the jenkins portal via Manage Jenkins > System Configuration > Configure System > Global Properties > Environment Variables
        Initialize Environment variables using sh scripts in Jenkinsfile
        Must use Groovy string interpolation (${}) inside a double-quoted Groovy string (""").
+       Groovy does not allow hyphens (-) in variable names or parameter names, as they are interpreted as a minus operator, so need to use _ in variables
 
     */  
   environment {
@@ -120,7 +144,7 @@ pipeline {
     APP_GIT_CREDENTIALS_ID = "cred-github-fedora800-PAT"
 
     APP_GITOPS_REPO_NAME = "gitops-stocksanalyzer-system"
-    APP_GITOPS_REPO_URL = 'https://github.com/your-username/gitops-stocksanalyzer-system.git' // Replace with your actual GitOps repo URL
+    APP_GITOPS_REPO_URL = 'https://github.com/fedora800/gitops-stocksanalyzer-system.git' // Replace with your actual GitOps repo URL
     APP_GITOPS_BRANCH = 'main' // Replace with the branch you want to update in the GitOps repo
     APP_GITOPS_CREDENTIALS_ID = "cred-github-fedora800-PAT"
 
@@ -134,6 +158,10 @@ pipeline {
                                                                              // github push will also fail due to committing a password
     DOCKER_IMAGE_TAG_1 = "${env.APP_VERSION}"
     DOCKER_IMAGE_TAG_2 = "latest"
+
+    K8S_NAMESPACE = 'default'
+    K8S_DEPLOYMENT_FILE = 'kubernetes-manifests/frontend/dpl-frontend.yaml'
+    K8S_SERVICES_FILE = 'kubernetes-manifests/frontend/svc-frontend.yaml'
 
 
     SLACK_CHANNEL = "#deployment-notifications"
@@ -155,9 +183,13 @@ pipeline {
     IS_BOOLEAN = false   // will be stored as a string value
 
     LS_OUTPUT = "${sh(script:'ls -lah', returnStdout: true).trim()}"
-    SCANNER_HOME= tool 'sonar-scanner'
 
-    FILE_TO_CHANGE = 'kubernetes-manifests/frontend/dpl-frontend.yaml'
+    SCANNER_HOME=tool 'sonar-scanner'
+    AWS_ACCOUNT_ID = credentials('ACCOUNT_ID')
+    AWS_ECR_REPO_NAME = credentials('ECR_REPO1')
+    AWS_DEFAULT_REGION = 'us-east-1'
+    REPOSITORY_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/"
+
 
     }   
 
@@ -181,6 +213,11 @@ pipeline {
       choice(name: 'BRANCH', choices: ['Master', 'Dev'], description: 'Choose branch')
       // below will show a 1 line input box, will show as concealed and we can change it
       password(name: 'SONAR_SERVER_PWD', description: 'Enter SONAR password')
+   
+      // to suppress the below error
+      // Sep 22 12:13:16 acg-control1 jenkins[448]: 2024-09-22 12:13:16.450+0000 [id=1183]#011WARNING#011hudson.model.ParametersAction#filter: Skipped parameter jenkins-generic-webhook-trigger-plugin_uuid as it is undefined on pipeline-stocksanalyzer-system (#236). Set -Dhudson.model.ParametersAction.keepUndefinedParameters=true to allow undefined parameters to be injected as environment variables or -Dhudson.model.ParametersAction.safeParameters=[comma-separated list] to whitelist specific parameter names, even though it represents a security breach or -Dhudson.model.ParametersAction.keepUndefinedParameters=false to no longer show this message.
+      string(name: 'jenkins-generic-webhook-trigger-plugin_uuid', defaultValue: '', description: 'UUID from the Generic Webhook Trigger plugin')
+
     }   
 
 
@@ -228,6 +265,7 @@ pipeline {
       stage("P03 - Print Environment Variables - 2 different methods") { // TESTED-AND-WORKS
         steps{
           PrintStageName()
+          // using environment variables populated by Jenkins
           echo "BUILD_NUMBER = ${env.BUILD_NUMBER}"
           echo "STAGE_NAME = ${env.STAGE_NAME}"
           echo "JOB_NAME=${env.JOB_NAME}"
@@ -235,13 +273,101 @@ pipeline {
           echo "USER=${env.USER}"
           echo "WORKSPACE=${env.WORKSPACE}"
   
+          // using environment variables but accesing via sh commands
           sh "BUILD_NUMBER=$BUILD_NUMBER"
           sh "JOB_NAME=$JOB_NAME"
   
           sh "printenv | sort"
+          
+          echo "NOTE: This will also include those passed from the GitHub webhook"    /* *** THIS DID NOT PRINT ANYTHING FROM THE WEBHOOK *** */
   
         }
       }
+
+
+    // Sample output -> Received secret: Secret not provided
+    stage('P04 - Check Webhook Parameters') { // TESTED-AND-WORKS
+      steps {
+        PrintStageName()
+          script {
+            echo "Received secret: ${params.cred_jenkins_token_for_github ?: 'Secret not provided'}"
+          }
+      }
+    }
+
+
+    stage('P05 - Print GitHub Webhook Headers on Generic Webhook Trigger') {  // TESTED-AND-WORKS
+      steps {
+        PrintStageName()
+          script {
+            // NOTE - each of these need to be individually set up on the Jenkins GUI under the "Header parameters" section
+            // and the naming convention should be exactly like below example:
+            // The "X-GitHub-Delivery" header should be set as Request Header = "x-github-delivery" and leave Value filter blank and here env.x_github_delivery.
+            // these are a pain, capitals, hyphen and underscore variable names, so do exactly as done here and in GUI.
+
+            def gitHubDelivery = env.x_github_delivery ?: 'Not available'
+            def gitHubEvent = env.x_github_event ?: 'Not available'
+            def githubHookId = env.x_github_hook_id ?: 'Not available'
+            def gitHubInstallationTargetID = env.x_github_hook_installation_target_id ?: 'Not available'
+            def gitHubInstallationTargetType = env.x_github_hook_installation_target_type ?: 'Not available'
+
+            echo "X-GitHub-Delivery : ${gitHubDelivery}"
+            echo "X-GitHub-Event : ${gitHubEvent}"
+            echo "X-GitHub-Hook-ID : ${githubHookId}"
+            echo "X-GitHub-Hook-Installation-Target-ID : ${gitHubInstallationTargetID}"
+            echo "X-GitHub-Hook-Installation-Target-Type : ${gitHubInstallationTargetType}"
+
+            //def headers = env.GENERIC_WEBHOOK_TRIGGER_HEADERS ?: 'No Headers Found'
+            //echo "Webhook Headers: ${headers}"
+
+            // env shows some interesting variables, need to check out later
+            echo "-----------env print --- start ----"
+            //sh 'env | sort'                           // too many rows, so for now just show top and bottom of it
+            sh 'env > /tmp/env.txt'
+            echo "shortened env list :"
+            sh '(head -n 5; echo "..."; tail -n 5) < /tmp/env.txt'
+
+            // NOTE: here i can see all the payload data nicely put into individual env variables with prefix of webhook_payload_
+            // eg webhook_payload_ref=refs/heads/main
+            //    webhook_payload_repository_git_url=git://github.com/fedora800/stocksanalyzer-system.git
+            // and of course the whole json in webhook_payload which i am printing in the captureRawPayload_method_2 function
+            echo "-----------env print --- end ----"
+            // Store some values for use in the next section
+            env.GITHUB_HOOK_TARGETID = gitHubInstallationTargetID
+
+          }
+      }
+    }
+
+
+    stage('P06 - Process Payload Received on the GitHub Webhook for the Generic Webhook Trigger') { //TESTED-AND-WORKS
+            // NOTE - just the Payload, the HEADERS need to be processed differently
+            steps {
+                PrintStageName()
+                script {
+//def payload = env.GENERIC_WEBHOOK_TRIGGER_REQUEST_BODY ?: 'No Payload Found'
+//echo "Webhook Payload: ${payload}"
+
+                    try {
+                        echo "-- Calling captureRawPayload_method_1()  --"
+                        captureRawPayload_method_1()
+                        echo "-- Calling captureRawPayload_method_2()  --"
+                        // A variable called webhook_payload is configured on Jenkins under "Post content parameters"  with Expression = $ and JSONPATH option.
+                        captureRawPayload_method_2()
+                        echo "-- Calling extractWebhookInfo()  --"
+                        extractWebhookInfo()
+                        echo "-- Calling createBuildIdentifier()  --"
+                        createBuildIdentifier()
+                    } catch (Exception e) {
+                        echo "Error processing webhook: ${e.message}"
+                        currentBuild.result = 'FAILURE'
+                    }
+                }
+            }
+    }
+
+
+
 
     // stage set or use local environment variables in different sections
     stage("Set Env Variables for this Stage - 1") { NOT-TESTED
@@ -342,6 +468,7 @@ pipeline {
         PrintStageName()
         script {
           try {
+            echo "Cloning repository ${APP_GIT_REPO_URL} from branch ${APP_GIT_REPO__BRANCH}"
             // Pull code from a GitHub repository
             //git branch: 'main', url: 'https://github.com/fedora800/scratch_project.git'
             git branch: APP_GIT_REPO_BRANCH, credentialsId: APP_GIT_CREDENTIALS_ID, url: APP_GIT_REPO_URL
@@ -357,6 +484,7 @@ pipeline {
     stage('D02 - Pull Code from Private git repo -- method 2 - using git() function')  {		//TESTED-AND-WORKS
       steps {
         PrintStageName()
+        echo "Cloning repository ${APP_GIT_REPO_URL} from branch ${APP_GIT_REPO__BRANCH}"
         git([url: APP_GIT_REPO_URL, branch: APP_GIT_REPO_BRANCH, credentialsId: APP_GIT_CREDENTIALS_ID])
       }
     }
@@ -369,6 +497,7 @@ pipeline {
 
             // Use Jenkins credentials to access the repository
             withCredentials([usernamePassword(credentialsId: env.APP_GIT_CREDENTIALS_ID, passwordVariable: 'VAR_PAT', usernameVariable: 'VAR_USER')]) {
+              echo "Cloning repository ${APP_GIT_REPO_URL} from branch ${APP_GIT_REPO__BRANCH}"
               //below is not going to work as this variable is the complete URL itself, so will need to change the variable if we want to use it
               //git branch: env.APP_GIT_REPO_BRANCH, url: "https://${VAR_USER}:${VAR_PAT}@${env.APP_GIT_REPO_URL}"
               //git branch: env.APP_GIT_REPO_BRANCH, url: "https://${VAR_USER}:${VAR_PAT}@github.com/fedora800/stocksanalyzer-system.git"
@@ -498,6 +627,30 @@ pipeline {
     // https://github.com/LondheShubham153/TWSThreeTierAppChallenge/blob/main/Jenkins-Pipeline-Code/Jenkinsfile-Backend
     }
 
+    stage('E05 - Call another Jenkins Build Pipeline/Job') {  //NOT-TESTED
+      steps {
+        PrintStageName()
+          echo "Firing/Triggering jobs pipeline-stocksanalyzer-system-backend ..."
+          build job: 'pipeline-stocksanalyzer-system-backend', parameters: [string(name: 'DOCKERTAG', value: env.BUILD_NUMBER)]
+      }
+    }
+
+
+  stage("E06 - Build Docker Image with version passed as argument- Using Shell commands") {  // TESTED-AND-WORKS
+    steps {
+      PrintStageName()
+      script {
+//            sh echo -e "e[33m THIS IS NOT WORKING, SKIPPING FOR NOW ....e[0m"
+        sh """
+           sudo docker build -f src/frontend/Dockerfile  --build-arg APP_VERSION=${env.APP_VERSION} \
+           --tag ${env.DOCKERHUB_USERNAME}/${env.APP_NAME}:${DOCKER_IMAGE_TAG_1} --tag ${DOCKERHUB_USERNAME}/${env.APP_NAME}:${DOCKER_IMAGE_TAG_2} src/frontend
+        """
+      }
+    }
+  }
+
+
+
 
 // -------------------- section : Code Review Related --------------------
         // stage-code-review
@@ -505,7 +658,7 @@ pipeline {
         steps { echo "Code Review"  }
         }
 
-// -------------------- section : Testing Related --------------------
+// G00 -------------------- section : Testing Related --------------------
 
         // stage-test
         /* can comprise of many different testing stages
@@ -547,6 +700,39 @@ pipeline {
                 }
             }
         }
+
+
+    stage('G06 - Sonarqube Analysis') {  // NOT-TESTED
+      steps {
+        dir('Application-Code/frontend') {
+          withSonarQubeEnv('sonar-server') {
+            sh ''' $SCANNER_HOME/bin/sonar-scanner \
+              -Dsonar.projectName=three-tier-frontend \
+              -Dsonar.projectKey=three-tier-frontend '''
+          }
+        }
+      }
+    }
+
+    stage('G07 - SonarQube Analsyis') { // NOT-TESTED
+      steps {
+        withSonarQubeEnv('sonar') {
+          sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=BoardGame -Dsonar.projectKey=BoardGame \
+            -Dsonar.java.binaries=. '''
+        }
+      }
+    }
+
+
+        stage('Quality Gate/Check') {
+            steps {
+                script {
+                  waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token' 
+                }
+            }
+        }
+
+
 
 // -------------------- section : Metric Checks Related --------------------
         // stage-metric-check
@@ -613,34 +799,6 @@ pipeline {
             }
         }
 
-        stage('Sonar Analysis') {
-            steps {
-               withSonarQubeEnv('sonar'){
-                   sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Santa \
-                   -Dsonar.java.binaries=. \
-                   -Dsonar.projectKey=Santa '''
-               }
-            }
-        }
-
-
-        stage('SonarQube Analsyis') {
-            steps {
-                withSonarQubeEnv('sonar') {
-                    sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=BoardGame -Dsonar.projectKey=BoardGame \
-                            -Dsonar.java.binaries=. '''
-                }
-            }
-        }
-
-
-        stage('Quality Gate') {
-            steps {
-                script {
-                  waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token' 
-                }
-            }
-        }
         
         stage('Build') {
             steps {
@@ -805,6 +963,52 @@ pipeline {
       } //steps
     }
 
+    stage("ECR Image Pushing") {
+      steps {
+        script {
+          sh 'aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${REPOSITORY_URI}'
+            sh 'docker tag ${AWS_ECR_REPO_NAME} ${REPOSITORY_URI}${AWS_ECR_REPO_NAME}:${BUILD_NUMBER}'
+            sh 'docker push ${REPOSITORY_URI}${AWS_ECR_REPO_NAME}:${BUILD_NUMBER}'
+        }
+      }
+    }
+
+
+
+  stage('Docker Login using Jenkins Credentials ID') {
+      steps {
+        PrintStageName()
+        script {
+          // Fetch the username and password token from credentials id and assign values to local variables
+          withCredentials([usernamePassword(credentialsId: 'cred_dockerhub', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_TOKEN')]) {
+            // Securely perform Docker login using local environment variables
+            // triple single (''') quotes for sh step to ensure that multi-line commands and variable expansions are handled properly by the shell.
+            sh '''
+            echo "$DOCKER_TOKEN" | sudo docker login -u "$DOCKER_USERNAME" --password-stdin
+            '''
+          }
+        }
+        script {
+          sh '''
+          echo "Builds that are available to push for this app:"
+          sudo docker image ls | egrep "REPO|${APP_NAME}"
+          '''
+        }
+      }
+  }
+
+
+
+  stage("Push Docker Image - Using Shell commands") {
+    steps {
+      PrintStageName()
+      script {
+        sh "sudo docker push ${DOCKERHUB_USERNAME}/${APP_NAME}:${DOCKER_IMAGE_TAG_1}"
+        sh "sudo docker push ${DOCKERHUB_USERNAME}/${APP_NAME}:${DOCKER_IMAGE_TAG_2}"
+      }
+    }
+  }
+
 
 
 
@@ -919,18 +1123,6 @@ pipeline {
             }
         }
 
-
-        stage("M04 - Build Docker Image with version passed as argument- Using Shell commands") { //TESTED-AND-WORKS
-
-          // Build the Docker image with the build argument
-          sh """
-             sudo docker build -f src/frontend/Dockerfile  --build-arg APP_VERSION=${env.APP_VERSION} \
-             --tag ${env.DOCKERHUB_USERNAME}/${env.APP_NAME}:${DOCKER_IMAGE_TAG_1} --tag ${DOCKERHUB_USERNAME}/${env.APP_NAME}:${DOCKER_IMAGE_TAG_2} src/frontend
-          """
-
-          // Push the Docker image to the repository
-          sh "docker push myrepo/myapp:${env.APP_VERSION}"
-        }
 
 
     // https://www.codurance.com/publications/2019/05/30/accessing-and-dumping-jenkins-credentials
@@ -1571,6 +1763,8 @@ Finished: ABORTED
               git push https://${env.VAR_USER}:${env.VAR_PAT}@github.com/${env.GIT_USER_NAME}/${env.APP_GITOPS_REPO_NAME}.git ${env.APP_GITOPS_BRANCH}
               git log --pretty=format:'%h %ad %s    %D' --date=local -5
               """
+              // This git push will evoke the webhook trigger on github on this gitops repo which the jenkins gitops pipeline is configured for, thus it gets fired
+              
             } //with
 
           } //dir
@@ -1584,6 +1778,68 @@ Finished: ABORTED
   } //stage
 
 
+
+    stage('L13 - Connect to Kubernetes cluster using config file credentials and lookup resources') { //TESTED-AND-WORKS
+      steps {
+        PrintStageName()
+        script {
+          // Wrap with the credentials block to use the kubeconfig from Jenkins credentials into Jenkins env variable
+          withCredentials([file(credentialsId: 'cred-kubernetes-config-file', variable: 'KUBECONFIG')]) {
+            // Optionally check the cluster details
+            sh 'kubectl config view'
+            // Run your kubectl commands, for example, deploying an application
+            sh 'kubectl get nodes -o wide'
+            // Example of deploying a YAML manifest
+            //sh 'kubectl apply -f deployment.yaml'
+            // You can also run other kubectl commands as needed
+            sh 'kubectl get pods -n ${K8S_NAMESPACE} -o wide'
+          }
+        }
+      }
+    }
+
+
+    stage('L14 - Deploy to Kubernetes - Connect using config file credentials and APPLY manifest changes') {  //TESTED-AND-WORKS
+      steps {
+        PrintStageName()
+        script {
+          // Wrap with the credentials block to use the kubeconfig from Jenkins credentials into Jenkins env variable
+          withCredentials([file(credentialsId: 'cred-kubernetes-config-file', variable: 'KUBECONFIG')]) {
+            sh 'kubectl apply -f $K8S_DEPLOYMENT_FILE'
+            sh 'kubectl apply -f $K8S_SERVICES_FILE'
+            sh 'echo Waiting for 10 seconds for resource to come up...; sleep 10'
+            sh 'kubectl -n ${K8S_NAMESPACE} get all --show-labels'
+
+          }
+        }
+      }
+    }
+
+
+    stage('Update Deployment file') {
+      environment {
+        GIT_REPO_NAME = "End-to-End-Kubernetes-Three-Tier-DevSecOps-Project"
+        GIT_USER_NAME = "AmanPathak-DevOps"
+      }
+      steps {
+        dir('Kubernetes-Manifests-file/Frontend') {
+          withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
+            sh '''
+              git config user.email "aman07pathak@gmail.com"
+              git config user.name "AmanPathak-DevOps"
+              BUILD_NUMBER=${BUILD_NUMBER}
+            echo $BUILD_NUMBER
+              imageTag=$(grep -oP '(?<=frontend:)[^ ]+' deployment.yaml)
+              echo $imageTag
+              sed -i "s/${AWS_ECR_REPO_NAME}:${imageTag}/${AWS_ECR_REPO_NAME}:${BUILD_NUMBER}/" deployment.yaml
+              git add deployment.yaml
+              git commit -m "Update deployment Image to version \${BUILD_NUMBER}"
+              git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:master
+              '''
+          }
+        }
+      }
+    }
 
         stage('Deploy to Kubernetes') {
             steps {
@@ -1617,14 +1873,6 @@ Finished: ABORTED
             }
         }
         
-        stage('Verify the Deployment') {
-            steps {
-               withKubeConfig(caCertificate: '', clusterName: 'kubernetes', contextName: '', credentialsId: 'k8-cred', namespace: 'webapps', restrictKubeConfigAccess: false, serverUrl: 'https://172.31.8.146:6443') {
-                        sh "kubectl get pods -n webapps"
-                        sh "kubectl get svc -n webapps"
-                }
-            }
-        }
 
 
 
@@ -1702,6 +1950,116 @@ Finished: ABORTED
   } // end-post
 
 } // end-pipeline
+
+
+//A00 -------------------- section : Functions --------------------
+// functions need to be at the end of the code, outside of the pipeline section
+
+// function to print the stage name more clearly in the jenkins console output, can be called within each stage
+def PrintStageName() {  // TESTED-AND-WORKS
+  echo "-----------------STAGE: ${env.STAGE_NAME}-----------------"
+}
+
+
+def captureRawPayload_method_1() { // TESTED-AND-WORKS
+
+  // When a webhook is received by Jenkins, the Generic Webhook Trigger Plugin intercepts it.
+  // The plugin extracts the raw body of the POST request.
+  // It then sets this body as the value of the GENERIC_WEBHOOK_TRIGGER_REQUEST_BODY environment variable.
+  // This environment variable is then available for use in the Jenkins pipeline script.
+
+  // Capture the raw payload
+  def rawPayload = env.GENERIC_WEBHOOK_TRIGGER_REQUEST_BODY ?: '{}'      // **** THIS DOES NOT CAPTURE IT, so not working, sets to {}  ****, but env has it, check there
+  // Save the payload to a file in the workspace
+  writeFile file: 'webhook_payload-X.json', text: rawPayload
+  // Print the file path and contents
+  echo "Raw payload saved to: ${env.WORKSPACE}/webhook_payload-X.json"
+  sh '''
+  ls -l webhook_payload-X.json
+  cat webhook_payload-X.json
+  '''
+
+}
+
+def captureRawPayload_method_2() { // TESTED-AND-WORKS
+
+  // Print the entire payload data that was picked by the Generic Webhook Trigger Plugin 
+  // A variable webhook_payload is configured on Jenkins under "Post content parameters"  with Expression = $ and JSONPATH option.
+  // echo "webhook_payload = ${env.webhook_payload}"    // WORKS, but prints the huge json, so commented out for now
+
+/*
+Post content parameters
+Name of variable = webhook_payload
+Expression = $
+JSONPATH
+above expression means we want all the fields from the the payload put into this webhook_payload environment variable.
+
+If we want the Header from the github webhook invocation, eg below - 
+X-GitHub-Hook-Installation-Target-Type: repository
+Go to "Header parameters" and add Request header = X-GitHub-Hook-Installation-Target-Type and leave Value filter blank
+*/
+
+  // Write the JSON content from the env variable to a file
+  writeFile file: 'webhook_payload.json', text: "${env.webhook_payload}"
+
+  // Optional: Print the content to verify
+  sh '''
+  pwd
+  ls -l webhook_payload.json
+  cat webhook_payload.json | cut -c1-1000
+  '''
+}
+
+
+def extractWebhookInfo() { // TESTED-AND-WORKS
+
+    // Parse the JSON formatted file into a json type of variable
+    def jsonPayload = readJSON text: "${env.webhook_payload}"           // from the env variable
+    //def jsonPayload = readJSON file: 'webhook_payload.json'             // from the saved file
+
+    // html_url and git_url fields are typically part of the repository object, not at the root level of the payload
+    def htmlUrl       = jsonPayload.repository?.html_url ?: 'Unknown'
+    def gitUrl        = jsonPayload.repository?.git_url ?: 'Unknown'
+    def repoName      = jsonPayload.repository.full_name ?: 'Unknown'
+    def ref           = jsonPayload.ref ?: 'Unknown'
+    def branchName    = jsonPayload.ref ? jsonPayload.ref.split('/')[-1] : 'Unknown'
+    def commitId      = jsonPayload.after ?: 'Unknown'
+    def commitMessage = jsonPayload.head_commit?.message ?: 'Unknown'
+    def pusherName    = jsonPayload.pusher?.name ?: 'Unknown'
+    echo "Printing main fields received on the GitHub webhook payload for build #${env.BUILD_NUMBER}"
+    echo "HTML url: ${htmlUrl}"
+    echo "git url: ${gitUrl}"
+    echo "Repository: ${repoName}"
+    echo "Ref: ${ref}"
+    echo "Branch: ${branchName}"
+    echo "Commit ID: ${commitId}"
+    echo "Commit Message: ${commitMessage}"
+    echo "Pushed by: ${pusherName}"
+    // Store some values for use in the next section
+    env.REPO_NAME = repoName
+    env.COMMIT_ID = commitId
+    
+    // Construct a link between the webhook and the Jenkins build
+    def buildLink = "${repoName} commit ${commitId} ${GITHUB_HOOK_TARGETID} fired Jenkins Build #${env.BUILD_NUMBER}"
+    echo "Link: ${buildLink}"
+
+
+}
+
+
+def createBuildIdentifier() {  // TESTED-AND-WORKS
+    def githubDeliveryId = env.HTTP_X_GITHUB_DELIVERY ?: 'Unknown'
+    echo "GitHub Delivery ID: ${githubDeliveryId}"
+    // Create a unique identifier linking GitHub webhook to Jenkins build
+    def linkIdentifier = "${env.BUILD_NUMBER}-${githubDeliveryId}"
+    echo "Unique Build Identifier: ${linkIdentifier}"
+    // Set this as a build parameter for future reference
+    env.GITHUB_JENKINS_LINK = linkIdentifier
+    // Additional logging with stored values from previous section
+    echo "This build (#${env.BUILD_NUMBER}) is for repository ${env.REPO_NAME}, commit ${env.COMMIT_ID}"
+    // Log the Generic Webhook Trigger UUID
+    echo "Generic Webhook Trigger UUID: ${params['jenkins-generic-webhook-trigger-plugin_uuid']}"
+}
 
 
 
