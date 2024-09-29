@@ -4,8 +4,9 @@ metadata:
   name: dpl-busybox
   labels:
     pl-app: busybox
+    pl-version: 0.1.0
+    pl-component: frontend
     pl-env: prod
-    pl-tier: frontend
 spec:
   replicas: 10                      # creates the ReplicaSets, tells how many instances of the pod this deployment/replicaset will create/control
   strategy:                            # define strategy how we want to replace old pods with new
@@ -16,14 +17,16 @@ spec:
   selector:                          # MANDATORY section. specifies the label selector mapping criteria to match labels of the pods that are managed by this deployment
     matchLabels:                     # specifies the labels that the Replica Set (deployment creates it) should use to select the pods it manages. 
       pl-app: busybox
+      pl-version: 0.1.0
+      pl-component: frontend
       pl-env: prod
-      pl-tier: frontend
   template:                          # this section defines the POD template to create pods that we need
     metadata:
       labels:
         pl-app: busybox                 # these are all the labels put ON THE POD
+        pl-version: 0.1.0
+        pl-component: frontend
         pl-env: prod
-        pl-tier: frontend
     spec:                            # defines the specification of the pod
       affinity:
         nodeAffinity:                # ensures pods are scheduled only on NODES having label appnodetype = support-node1 or monitoring-node1

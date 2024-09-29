@@ -2,12 +2,16 @@ apiVersion: v1
 kind: Service
 metadata:
   name: svc-clusterip
+  labels:
+    app: example-app               # **NEED to find if labels for services are required and how that affects the connected resources **
 spec:
   type: ClusterIP                  # only accessible within the k8s cluster, so we will need to create a pod and connect into it to curl to this service
   selector:                        # this criteria determines which pods this service will route traffic to
-    tier: frontend                 # these LABELS need to be matching the labels of the PODS to actually set up its endpoints
+    pl-app: busybox                # these LABELS need to be matching the labels of the PODS to actually set up its endpoints
+    pl-version: 0.1.0
+    pl-component: frontend
+    pl-env: prod
                                    # sometimes on imperative commands, it can auto-pick up from the pods labels based upon its also
-
   ports:
     - protocol: TCP
       port: 80                     # port that this SERVICE is LISTENING on

@@ -1,0 +1,52 @@
+
+# https://github.com/nigelpoulton/TheK8sBook/tree/main/ingress
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mcu-all
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  # Ingress resource uses host AND paths to route incoming HTTP requests to the appropriate services based what was provided in the request's domain and URL path
+  # so here, these 2 blocks (host shield.mcu.com, path /) and (hydra.mcu.com, path /) can be considered host based ingress
+  - host: shield.mcu.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: svc-shield
+            port:
+              number: 8080
+  - host: hydra.mcu.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: svc-hydra
+            port:
+              number: 8080
+  # whereas these 2 blocks (host mcu.com, path /shield) and (mcu.com, path /hydra) can be considered path based ingress
+  - host: mcu.com
+    http:
+      paths:
+      - path: /shield
+        pathType: Prefix
+        backend:
+          service:
+            name: svc-shield
+            port:
+              number: 8080
+      - path: /hydra
+        pathType: Prefix
+        backend:
+          service:
+            name: svc-hydra
+            port:
+              number: 8080

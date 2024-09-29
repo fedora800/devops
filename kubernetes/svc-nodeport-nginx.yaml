@@ -9,10 +9,11 @@ spec:
   ports:
     - port: 80
 #      targetPort: 80
-      targetPort: ctrport-nginx
+      targetPort: ctrport-nginx         # port number/name that the container in the requisite pod listens on, so we need to check that yaml file
       nodePort: 30080          # if we dont use this, by default, k8s will assign a random one from that 30000-32767 range.
                                # this SERVICE will listen on this port for EXTERNAL traffic coming in on ALL of our nodes
                                # so we can reach this service on this port from any of our nodes, which in turn will route us to the pods mapped by the selector condition
+      protocol: TCP
 
 $ kubectl get service svc-nodeport-nginx -o wide --show-labels
 NAME                 TYPE       CLUSTER-IP    EXTERNAL-IP   PORT(S)        AGE   SELECTOR        LABELS
