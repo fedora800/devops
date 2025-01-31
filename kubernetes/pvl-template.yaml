@@ -7,15 +7,20 @@ metadata:
     type: local
 spec:
   storageClassName: local-storage
-  claimRef:
+#  storageClassName: manual          # indicates that provisioning of the storage is done manually
+  claimRef:                          # ensures specified PV is reserved for the PVC specified, so prevents other PVCs from claiming the same PV.
     name: pvc-jenkins
-    namespace: devops-tools
+    namespace: devops-tools          # the PVC should also belong to this specified namespace
   capacity:
     storage: 10Gi
   accessModes:
     - ReadWriteOnce
-  local:
-    path: /mnt
+#    - ReadWriteMany                 # allow multiple Pods to read and write to the volume simultaneously
+  local:                             # local storage/volume requires node affinity as need to specify the host unlike networked storage, which can be accessed by any node in the cluster.
+    path: /mnt                       # this dir needs to EXIST and does not create it
+#  hostPath:                         # Uses dir on the node and can create it with type specified.  check the difference between local and hostpath
+#    type: DirectoryOrCreate
+#    path: /data
   nodeAffinity:
     required:
       nodeSelectorTerms:

@@ -2,13 +2,13 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: pvc-jenkins
-  namespace: devops-tools
+  namespace: ns-devops-tools
 spec:
   storageClassName: local-storage
+  #storageClassName: ""       # empty string explicitly needed to specify that does not use any StorageClass and only binds to manually provisioned PVs without a storageClassName. else default StorageClass will be set
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
       storage: 3Gi
 
-# When a PVC does not specify a storageClassName, the default StorageClass is used.

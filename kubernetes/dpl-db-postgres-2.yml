@@ -1,0 +1,52 @@
+# https://www.digitalocean.com/community/tutorials/how-to-deploy-postgres-to-kubernetes-cluster
+# https://kodekloud.com/blog/deploy-postgresql-kubernetes/
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dpl-postgres
+  namespace: ns-stocksanalyzer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      pl-app: stocksanalyzer
+      pl-version: 1.0.297
+      pl-component: database
+      pl-env: prod
+  template:
+    metadata:
+      labels:
+        pl-app: stocksanalyzer
+        pl-version: 1.0.297
+        pl-component: database
+        pl-env: prod
+    spec:
+      containers:
+        - name: postgres
+          image: 'postgres:17.0'
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: cmp-postgres
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sct-postgres-password
+                  key: password
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: vol-postgres-data
+      volumes:
+        - name: vol-postgres-data
+          persistentVolumeClaim:
+            claimName: pvc-postgres
+
+
+# $ kubectl exec -it dpl-postgres-6cf64d55d6-447mp -n ns-stocksanalyzer -- psql -h localhost -U postgres --password -p 5432 db-stocksanalyzer
+# Password: 
+# psql (17.0 (Debian 17.0-1.pgdg120+1))
+# db-stocksanalyzer=# 

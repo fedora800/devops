@@ -34,6 +34,11 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
+        - name: POSTGRES_PASSWORD                   # getting value from a secret and assigning to a variable
+          valueFrom:
+            secretKeyRef:
+              name: sct-postgres-password
+              key: password
       volumeMounts:
         - name: vol-from-cmp-from-file
           mountPath: "/appvol/cmp-from-file"        # as it's based of that specific configmap, this will result in /appvol/cmp-from-file/config.txt being created with the 3 keyvalues.
