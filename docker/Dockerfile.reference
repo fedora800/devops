@@ -53,6 +53,7 @@ ENV PYTHONUNBUFFERED 1
 # Use an official image as a parent image
 FROM ubuntu:${UBUNTU_VERSION}
 #From ubuntu:latest
+#FROM python:3.10-alpine
 
 Maintainer "fedora800"
 
